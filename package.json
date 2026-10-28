@@ -23,8 +23,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico",
-      "signAndEditExecutable": false
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": true,
@@ -35,7 +34,8 @@
       "shortcutName": "Bullpen",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "Bullpen-Setup-${version}.${ext}"
+      "artifactName": "Bullpen-Setup-${version}.${ext}",
+      "include": "build/installer.nsh"
     },
     "directories": {
       "output": "dist"
@@ -43,7 +43,8 @@
     "publish": {
       "provider": "github",
       "owner": "cmooney-hw",
-      "repo": "bullpen"
+      "repo": "bullpen",
+      "releaseType": "release"
     }
   },
   "devDependencies": {
