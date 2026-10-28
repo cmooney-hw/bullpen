@@ -32,8 +32,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Bullpen",
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
       "artifactName": "Bullpen-Setup-${version}.${ext}",
       "include": "build/installer.nsh"
     },
