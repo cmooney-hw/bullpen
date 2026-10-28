@@ -229,6 +229,8 @@ html.tv .mini b{font-size:24px}
     <button class="opt" data-t="frosted" role="radio" aria-checked="false"><span class="sw frosted"></span>Frosted glass<span class="chk">✓</span></button>
     <button class="opt" data-t="obsidian" role="radio" aria-checked="false"><span class="sw obsidian"></span>Obsidian<span class="chk">✓</span></button>
     <button class="opt" data-t="clear" role="radio" aria-checked="false"><span class="sw clear"></span>Clear glass<span class="chk">✓</span></button>
+    <div class="k" style="margin-top:8px">Manager</div>
+    <button class="opt" id="optMgr" role="switch" aria-checked="true">Show manager stats<span class="chk">✓</span></button>
   </div>
   <div class="alerts" id="alerts" aria-live="polite"></div>
   <main id="main"><div class="msg">Connecting to JustCall…</div></main>
@@ -256,6 +258,10 @@ const pop = $("themePop");
 function closePop(){ pop.hidden = true; $("btnTheme").setAttribute("aria-expanded","false"); }
 $("btnTheme").onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; $("btnTheme").setAttribute("aria-expanded", String(!pop.hidden)); };
 for (const o of document.querySelectorAll(".opt")) o.onclick = () => { applyTheme(o.dataset.t); closePop(); };
+let showMgr = true; try{ showMgr = localStorage.getItem("showMgr") !== "0"; }catch(_){}
+function applyMgr(rerender){ $("optMgr").setAttribute("aria-checked", String(showMgr)); try{ localStorage.setItem("showMgr", showMgr ? "1" : "0"); }catch(_){} if (rerender && last) render(last); }
+$("optMgr").onclick = e => { e.stopPropagation(); showMgr = !showMgr; applyMgr(true); };
+applyMgr(false);
 document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target)) closePop(); });
 document.addEventListener("keydown", e => { if (e.key==="Escape" && !pop.hidden) closePop(); });
 
@@ -485,7 +491,7 @@ function renderTeam(s, main){
     (r.manager ? mgrBox : reps).append(rep);
   }
   main.append(reps);
-  if (mgrBox.children.length){ main.append(el("div","k","Manager")); main.append(mgrBox); }
+  if (showMgr && mgrBox.children.length){ main.append(el("div","k","Manager")); main.append(mgrBox); }
 }
 /* ---------- 5:30pm recap: covers the widget once each weekday ---------- */
 const RECAP_HOUR = 17, RECAP_MIN = 30;
