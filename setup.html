@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>Bullpen setup</title>
+<style>
+:root{--bg:#0e1115;--surface:#151a20;--line:#252d37;--fg:#e7eaee;--muted:#8a94a1;--faint:#5d6773;--accent:#6aa8e8;--good:#46c08a;--bad:#ec6a72;
+  --f-body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;--f-display:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13.5px;line-height:1.5;padding:26px 28px}
+h1{font-family:var(--f-display);font-size:20px;margin:0 0 6px}
+p{color:var(--muted);margin:0 0 18px}
+ol{color:var(--muted);margin:0 0 20px;padding-left:18px}
+ol li{margin-bottom:4px}
+label{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--fg);font:inherit;margin-bottom:14px}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+button{all:unset;cursor:pointer;background:var(--accent);color:#0b1520;font-weight:600;padding:10px 18px;border-radius:8px}
+button[disabled]{opacity:.6;cursor:default}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+#msg{margin-top:14px;min-height:20px}
+#msg.ok{color:var(--good)} #msg.err{color:var(--bad)}
+.small{font-size:12px;color:var(--faint);margin-top:18px}
+</style>
+</head>
+<body>
+  <h1>Connect JustCall</h1>
+  <p>Bullpen reads today's Sales Dialer calls straight from JustCall. It only reads. It never dials, texts or changes anything.</p>
+  <ol>
+    <li>In JustCall, open Settings, then <b>APIs and Webhooks</b>.</li>
+    <li>Copy the API key and the API secret.</li>
+    <li>Paste them below and press Connect.</li>
+  </ol>
+  <form id="f">
+    <label for="key">API key</label>
+    <input id="key" autocomplete="off" spellcheck="false">
+    <label for="secret">API secret</label>
+    <input id="secret" type="password" autocomplete="off" spellcheck="false">
+    <button id="go" type="submit">Connect</button>
+  </form>
+  <div id="msg"></div>
+  <div class="small">Saved encrypted on this computer only.</div>
+<script>
+const msg = document.getElementById("msg");
+board.onSetupMessage(m => { msg.className="err"; msg.textContent = m; });
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const go = document.getElementById("go");
+  go.disabled = true; msg.className=""; msg.textContent = "Checking with JustCall…";
+  const r = await board.saveCreds(document.getElementById("key").value, document.getElementById("secret").value);
+  msg.className = r.ok ? "ok" : "err"; msg.textContent = r.message;
+  if (!r.ok) go.disabled = false;
+});
+document.getElementById("key").focus();
+</script>
+</body>
+</html>

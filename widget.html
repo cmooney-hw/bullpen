@@ -1,0 +1,580 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Bullpen</title>
+<style>
+:root{
+  --bg:#0e1115; --surface:#151a20; --raised:#1b222a; --line:#252d37; --line-soft:#1e252e;
+  --fg:#e7eaee; --muted:#8a94a1; --faint:#5d6773;
+  --accent:#6aa8e8; --accent-soft:rgba(106,168,232,.14);
+  --good:#46c08a; --good-soft:rgba(70,192,138,.14);
+  --bad:#ec6a72; --bad-soft:rgba(236,106,114,.14); --warn:#e0a640;
+  --f-body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --f-display:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --f-mono:"Cascadia Mono","Cascadia Code",Consolas,ui-monospace,monospace;
+  color-scheme:dark;
+}
+/* ---- Looks: Original (opaque), Frosted, Obsidian, Clear (glass over Windows acrylic) ---- */
+html[data-theme="frosted"]{--bg:rgba(22,26,36,.58);--surface:rgba(255,255,255,.06);--raised:rgba(255,255,255,.11);--line:rgba(255,255,255,.14);--line-soft:rgba(255,255,255,.08);
+  --fg:#eef1f5;--muted:rgba(238,241,245,.64);--faint:rgba(238,241,245,.42);--accent:#6fb4ff;--accent-soft:rgba(111,180,255,.18);--good:#5fe0a1;--good-soft:rgba(95,224,161,.18);--bad:#ff7a7e;--bad-soft:rgba(255,122,126,.18);--warn:#ffc14d}
+html[data-theme="obsidian"]{--bg:rgba(20,12,15,.76);--surface:rgba(255,255,255,.045);--raised:rgba(255,255,255,.09);--line:rgba(255,120,120,.16);--line-soft:rgba(255,255,255,.07);
+  --fg:#f3eeee;--muted:rgba(243,238,238,.6);--faint:rgba(243,238,238,.4);--accent:#e5484d;--accent-soft:rgba(229,72,77,.2);--good:#6ee7a8;--good-soft:rgba(110,231,168,.16);--bad:#ff7a7e;--bad-soft:rgba(255,122,126,.18);--warn:#ffc14d}
+html[data-theme="clear"]{--bg:rgba(255,255,255,.58);--surface:rgba(255,255,255,.62);--raised:rgba(255,255,255,.95);--line:rgba(0,0,0,.09);--line-soft:rgba(0,0,0,.06);
+  --fg:#1a2030;--muted:#5b6472;--faint:#8a93a0;--accent:#2f6fe2;--accent-soft:rgba(47,111,226,.14);--good:#15935a;--good-soft:rgba(21,147,90,.14);--bad:#d9343a;--bad-soft:rgba(217,52,58,.12);--warn:#b7791f;color-scheme:light}
+html[data-theme="frosted"]{--pop:rgba(32,38,52,.97)}html[data-theme="obsidian"]{--pop:rgba(34,20,24,.97)}html[data-theme="clear"]{--pop:rgba(255,255,255,.98)}
+html[data-theme="frosted"] body,html[data-theme="obsidian"] body,html[data-theme="clear"] body{border-radius:16px;border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+html[data-theme="clear"] body{box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+html[data-theme="frosted"] .bar i{box-shadow:0 0 12px rgba(111,180,255,.55)}
+html[data-theme="frosted"] .bar.met i,html[data-theme="obsidian"] .bar.met i{box-shadow:0 0 12px rgba(95,224,161,.55)}
+html[data-theme="obsidian"] .bar i{background:linear-gradient(90deg,#e5484d,#ff8a5c);box-shadow:0 0 12px rgba(229,72,77,.6)}
+html[data-theme="obsidian"] .bar.met i{background:linear-gradient(90deg,#2ec27e,#9cf5c4)}
+html[data-theme="obsidian"] .rep{border-left:3px solid rgba(229,72,77,.55)}
+html[data-theme="obsidian"] .reps{overflow:hidden}
+html[data-theme="obsidian"] .ttl{text-transform:uppercase;letter-spacing:.05em}
+html[data-theme="obsidian"] .tabs>button[aria-selected="true"]{text-shadow:0 0 12px rgba(229,72,77,.6)}
+html[data-theme="frosted"] .av,html[data-theme="obsidian"] .av,html[data-theme="clear"] .av{background:var(--raised)}
+html[data-theme="clear"] .closebtn{color:#fff}
+html[data-theme="clear"] .seg{background:rgba(0,0,0,.06)}
+html[data-theme="clear"] .seg button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+html[data-theme="frosted"] .reps,html[data-theme="clear"] .reps,html[data-theme="frosted"] .camps,html[data-theme="clear"] .camps{border-radius:14px}
+/* settings popover */
+.pop{position:absolute;top:44px;right:10px;z-index:30;background:var(--pop,#1b222a);border:1px solid var(--line);border-radius:12px;padding:8px;min-width:190px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+.pop .k{padding:4px 8px 8px}
+.opt{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:8px;border-radius:8px;font-size:13px}
+.opt:hover{background:var(--surface)}
+.opt:focus-visible{outline:2px solid var(--accent)}
+.opt .sw{width:22px;height:22px;border-radius:7px;border:1px solid rgba(255,255,255,.25);flex:none}
+.opt .chk{margin-left:auto;color:var(--accent);opacity:0}
+.opt[aria-checked="true"] .chk{opacity:1}
+.opt[aria-checked="true"]{background:var(--accent-soft)}
+.sw.original{background:#151a20}.sw.frosted{background:linear-gradient(135deg,#3a4a6a,#1b2230)}.sw.obsidian{background:linear-gradient(135deg,#3a1418,#120d10)}.sw.clear{background:linear-gradient(135deg,#ffffff,#cfd8e6)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:transparent}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13px;line-height:1.4;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;user-select:none}
+.bar-top{-webkit-app-region:drag;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--line-soft)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.dot.live{background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+.dot.warn{background:var(--warn)}
+.ttl{font-family:var(--f-display);font-weight:600;font-size:14px;white-space:nowrap}
+.date{color:var(--muted);font-size:12px;margin-left:2px}
+.sp{flex:1}
+/* The bull trots back and forth across the title bar */
+.track{flex:1;position:relative;height:22px;margin:0 8px;pointer-events:none;overflow:hidden}
+.bull{position:absolute;top:-4px;left:0;width:44px;height:28px;transition:left 4.6s linear}
+.bull svg{display:block}
+.bull.back svg{transform:scaleX(-1)}
+.bull .bob{display:block;animation:bob .38s ease-in-out infinite alternate}
+.bull .near-front,.bull .far-hind,.bull .near-hind,.bull .far-front{transform-box:fill-box;transform-origin:50% 0}
+.bull .near-front,.bull .far-hind{animation:gallop .38s ease-in-out infinite alternate}
+.bull .near-hind,.bull .far-front{animation:gallop .38s ease-in-out infinite alternate-reverse}
+@keyframes gallop{from{transform:rotate(-10deg)}to{transform:rotate(10deg)}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+@media (prefers-reduced-motion:reduce){.bull{transition:none}.bull .bob,.bull g{animation:none}}
+.ib{all:unset;-webkit-app-region:no-drag;cursor:pointer;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.ib:hover{background:var(--raised);color:var(--fg)}
+.ib:focus-visible{outline:2px solid var(--accent)}
+main{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+.k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.team{display:flex;flex-direction:column;gap:8px}
+.team-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.big{font-family:var(--f-mono);font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.big .of{font-size:13px;color:var(--muted)}
+.mini{display:flex;gap:10px;flex:none;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.mini span{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.mini small{white-space:nowrap;font-family:var(--f-body);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.int{color:var(--good)} .nint{color:var(--bad)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:inherit;transition:width .4s ease}
+.bar.met i{background:var(--good)}
+.reps{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.rep{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:11px 12px;border-top:1px solid var(--line-soft)}
+.rep:first-child{border-top:0}
+.av{grid-row:1/3;width:28px;height:28px;border-radius:50%;background:var(--raised);border:1px solid var(--line);display:grid;place-items:center;font-size:10.5px;font-weight:600;color:var(--muted)}
+.nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{justify-self:end;padding:2px 8px;border-radius:999px;font-family:var(--f-mono);font-size:11px;white-space:nowrap}
+.chip.under{background:var(--bad-soft);color:var(--bad)}
+.chip.met{background:var(--good-soft);color:var(--good)}
+.chip.mgr{background:var(--accent-soft);color:var(--accent)}
+.line2{grid-column:2/4;display:flex;align-items:center;gap:10px}
+.line2 .bar{flex:1;height:4px}
+.nums{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.nums b{color:var(--fg);font-weight:500;font-size:13px}
+.line3{grid-column:2/4;display:flex;gap:12px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.line3 b{font-family:var(--f-mono);font-weight:500}
+footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--faint)}
+.link{all:unset;cursor:pointer;color:var(--accent)}
+#btnUpdate{color:var(--good);font-weight:600;margin-left:10px}
+.link:hover{text-decoration:underline}
+.link:focus-visible{outline:2px solid var(--accent)}
+.msg{padding:24px 14px;text-align:center;color:var(--muted)}
+.tabs{display:flex;align-items:center;gap:18px;padding:0 14px;border-bottom:1px solid var(--line-soft);min-height:40px}
+.tabs>button{all:unset;cursor:pointer;padding:10px 0 9px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs>button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabs>button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{-webkit-app-region:no-drag;display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:2px}
+.seg button{all:unset;-webkit-app-region:no-drag;cursor:pointer;padding:3px 8px;border-radius:5px;font-size:11.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.seg button:focus-visible{outline:2px solid var(--accent)}
+.rep.idle{background:rgba(224,166,64,.07)}
+.rep.idle .av{border-color:var(--warn);color:var(--warn)}
+.idletag{color:var(--warn);font-weight:600}
+.offtag{color:var(--faint)}
+.line3 .conn{margin-left:auto;color:var(--faint)}
+.tog{all:unset;cursor:pointer;border-radius:5px;padding:1px 5px;margin:-1px -5px}
+.tog:hover{background:var(--raised)}
+.tog[aria-pressed="true"]{background:var(--raised);box-shadow:inset 0 0 0 1px var(--line)}
+.tog:focus-visible{outline:2px solid var(--accent)}
+.tog[disabled]{cursor:default;background:none}
+.camps{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.camp{display:grid;grid-template-columns:minmax(0,1fr) 48px 34px 58px;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line-soft);font-size:12.5px}
+.camp:first-child{border-top:0}
+.camp.h{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding-block:8px}
+.camp .cn{font-weight:600;overflow-wrap:anywhere}
+.camp.h span{white-space:nowrap}
+.camp .cn small{display:block;font-weight:400;color:var(--faint);font-size:11px}
+.camp .n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+/* ---- TV mode: full screen, all three sections side by side, scaled to the screen ---- */
+html.tv body{border:0;border-radius:0}
+html.tv .tabs>button{display:none}
+html.tv .tabs::before{content:"Team · Active Campaigns · Leaderboard";font-size:13px;font-weight:600;color:var(--muted)}
+html.tv main{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:22px;padding:22px 24px;align-items:start}
+html.tv .pane{display:flex;flex-direction:column;gap:12px;min-width:0}
+html.tv .pane .ph{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--line)}
+html.tv .pane .pb{display:flex;flex-direction:column;gap:14px}
+html.tv .big{font-size:40px}
+html.tv .mini b{font-size:24px}
+.lb{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.lbrow{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line-soft)}
+.lbrow:first-child{border-top:0}
+.lbrow.first{background:var(--good-soft)}
+.rank{font-size:18px;text-align:center;font-family:var(--f-mono);color:var(--muted)}
+.lbwho{min-width:0}
+.lbwho .nm{font-weight:600;font-size:14px}
+.lbwho .small{font-size:12px;color:var(--muted);margin-top:2px}
+.lbcalls{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.lbcalls b{font-size:20px;font-weight:600}
+.lbcalls small{color:var(--faint);font-size:12px}
+.split{grid-column:2/4;display:flex;flex-direction:column;gap:3px;margin-top:4px;padding:6px 8px;background:var(--bg);border:1px solid var(--line-soft);border-radius:7px}
+.split .s{display:flex;justify-content:space-between;gap:10px;font-size:11.5px}
+.split .s span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.split .s b{font-family:var(--f-mono);font-weight:500;flex:none}
+.line3 .conn b{color:var(--muted)}
+.alerts{display:flex;flex-direction:column;gap:6px;padding:10px 14px 0}
+.alerts:empty{display:none}
+.alert{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;background:var(--good-soft);border:1px solid rgba(70,192,138,.35);border-radius:8px;padding:9px 10px 9px 12px;animation:pop .35s ease}
+.alert b{font-size:13px;color:var(--good)}
+.alert p{grid-column:1/2;margin:0;font-size:12px;color:var(--fg);white-space:pre-wrap;max-height:3.2em;overflow:hidden}
+.alert .x{all:unset;cursor:pointer;grid-row:1/3;grid-column:2;color:var(--muted);font-size:14px;padding:0 4px;align-self:start}
+.alert .x:focus-visible{outline:2px solid var(--accent)}
+@keyframes pop{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.alert{animation:none}}
+.recap{position:fixed;inset:0;background:var(--bg);border-radius:10px;display:flex;flex-direction:column;z-index:10}
+.recap .rh{-webkit-app-region:drag;display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.recap .rh h2{font-family:var(--f-display);font-size:15px;margin:0}
+.recap .rb{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:16px}
+.recap table{width:100%;border-collapse:collapse;font-size:12.5px}
+.recap th,.recap td{padding-left:8px}
+.recap th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:500;text-align:right;padding:0 0 6px}
+.recap th:first-child,.recap td:first-child{text-align:left}
+.recap td{padding:7px 0;border-top:1px solid var(--line-soft);text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.recap td:first-child{font-family:var(--f-body);font-weight:600}
+.recap td .ok{color:var(--good)} .recap td .miss{color:var(--bad)}
+.recap .mtg{display:flex;flex-direction:column;gap:8px}
+.recap .m{border-left:2px solid var(--good);padding:2px 0 2px 10px}
+.recap .m b{font-weight:600} .recap .m span{color:var(--muted);font-size:12px}
+.recap .m p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.closebtn{all:unset;-webkit-app-region:no-drag;cursor:pointer;margin-left:auto;padding:5px 12px;border-radius:7px;background:var(--accent);color:#0b1520;font-weight:600;font-size:12px}
+.closebtn:focus-visible{outline:2px solid var(--fg)}
+.msg .link{display:inline-block;margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="bar-top">
+    <span class="dot" id="dot"></span>
+    <span class="ttl">Bullpen</span>
+    <span class="track" aria-hidden="true"><span class="bull"><span class="bob"><svg viewBox="0 0 100 64" width="44" height="28">
+  <g class="far-hind"><path d="M16 38 L24 42 L19 49 L12.5 55 L9 53.5 L14.5 47 Z" fill="#a8282e"/><path d="M8.7 53.1 L12.8 55.1 L11.5 57.5 L7.5 55.5 Z" fill="#2a0e10"/></g>
+  <g class="far-front"><path d="M65 43 L72 44 L78 51.5 L81 58 L77 59.2 L73.8 52.8 Z" fill="#a8282e"/><path d="M76.9 58.6 L81.3 57.6 L81.9 60.2 L77.3 61 Z" fill="#2a0e10"/></g>
+  <path d="M17.5 26 C 11.5 23.5, 8.5 17, 9.5 8.5" fill="none" stroke="#e5484d" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M9.5 10 C 6.5 7.5, 7.5 3.5, 9 1.5 C 9.5 4, 11.5 5.5, 11.5 7.5 C 11.5 9.5, 10.5 10.5, 9.5 10 Z" fill="#c43a40"/>
+  <path fill="#e5484d" d="M18 25 C 30 18, 44 12, 56 9.5 C 64 7.5, 72 8.5, 78 12.5 C 82 14.5, 85 17, 87 19.5 C 90.5 22.5, 93 28, 93.5 33 C 94 37, 91.5 39.5, 88 39 C 85 38.5, 83 37, 81 35.5 C 78 39, 75 43, 71 45.5 C 67.5 47.5, 63 47.5, 59.5 46 C 53 45, 47 43, 41 40.5 C 38 43, 35 46, 30 47 C 23 48, 16 44, 13.5 37 C 12 32, 13.5 27, 18 25 Z"/>
+  <path d="M84 22 L78.5 20 L82.5 25.8 Z" fill="#c43a40"/>
+  <path d="M83 18 C 85 13, 88 11, 92 11 C 89 12.5, 87 15, 86 19 Z" fill="#d9cdb8"/>
+  <path d="M86 20.5 C 89 15.5, 94 13.5, 99 14.5 C 95 16, 92 18.5, 90 22.5 Z" fill="#efe6d6"/>
+  <circle cx="89" cy="26.5" r="1" fill="#1a0d0e"/>
+  <circle cx="92.6" cy="35.5" r="0.8" fill="#7d1d22"/>
+  <g class="near-hind"><path d="M23 39 L33 42 L28.5 49 L30 57 L25.5 58 L24 49.5 L20 45 Z" fill="#e5484d"/><path d="M25.3 57 L30.2 56.6 L30.4 59.4 L25.4 59.6 Z" fill="#2a0e10"/></g>
+  <g class="near-front"><path d="M59.5 43 L67.5 44 L75 50.5 L73.2 54.5 L66.5 56.8 L64.6 53.8 L69.4 51.4 Z" fill="#e5484d"/><path d="M64.4 53.6 L66.8 57 L64 58.4 L62.4 55.4 Z" fill="#2a0e10"/></g>
+</svg></span></span></span>
+    <button class="ib" id="btnRefresh" title="Refresh now" aria-label="Refresh now">↻</button>
+    <button class="ib" id="btnBoard" title="Open full board" aria-label="Open full board">↗</button>
+    <button class="ib" id="btnTv" title="TV mode (full screen)" aria-label="TV mode" aria-pressed="false">⛶</button>
+    <button class="ib" id="btnTheme" title="Look" aria-label="Change the look" aria-haspopup="true" aria-expanded="false">⚙</button>
+    <button class="ib" id="btnHide" title="Hide (still runs in the tray)" aria-label="Hide">–</button>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Section">
+    <button id="vTeam" role="tab" aria-selected="true">Team</button>
+    <button id="vCamps" role="tab" aria-selected="false">Active Campaigns</button>
+    <button id="vBoard" role="tab" aria-selected="false">Leaderboard</button>
+    <span class="sp"></span>
+    <div class="seg" id="periodSeg" role="group" aria-label="Period"><button id="pToday" aria-pressed="true">Today</button><button id="pWeek" aria-pressed="false">Week</button></div>
+  </nav>
+  <div class="pop" id="themePop" hidden role="radiogroup" aria-label="Look">
+    <div class="k">Look</div>
+    <button class="opt" data-t="original" role="radio" aria-checked="true"><span class="sw original"></span>Original<span class="chk">✓</span></button>
+    <button class="opt" data-t="frosted" role="radio" aria-checked="false"><span class="sw frosted"></span>Frosted glass<span class="chk">✓</span></button>
+    <button class="opt" data-t="obsidian" role="radio" aria-checked="false"><span class="sw obsidian"></span>Obsidian<span class="chk">✓</span></button>
+    <button class="opt" data-t="clear" role="radio" aria-checked="false"><span class="sw clear"></span>Clear glass<span class="chk">✓</span></button>
+  </div>
+  <div class="alerts" id="alerts" aria-live="polite"></div>
+  <main id="main"><div class="msg">Connecting to JustCall…</div></main>
+  <footer><span id="status">Starting…</span><button class="link" id="btnUpdate" hidden>Update ready · Restart</button><span><button class="link" id="btnRecap" hidden>Recap</button>&nbsp;&nbsp;<button class="link" id="btnFull">Full board</button></span></footer>
+  <div class="recap" id="recap" hidden role="dialog" aria-label="Today's recap"></div>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n||0).toLocaleString("en-US");
+const initials = n => n.split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
+function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+
+/* ---- look / theme ---- */
+const THEMES = ["original","frosted","obsidian","clear"];
+function applyTheme(t){
+  if (!THEMES.includes(t)) t = "original";
+  document.documentElement.setAttribute("data-theme", t);
+  for (const o of document.querySelectorAll(".opt")) o.setAttribute("aria-checked", String(o.dataset.t===t));
+  try{ localStorage.setItem("theme", t); }catch(_){}
+  board.setTheme(t);
+}
+let savedTheme = "original"; try{ savedTheme = localStorage.getItem("theme") || "original"; }catch(_){}
+applyTheme(savedTheme);
+const pop = $("themePop");
+function closePop(){ pop.hidden = true; $("btnTheme").setAttribute("aria-expanded","false"); }
+$("btnTheme").onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; $("btnTheme").setAttribute("aria-expanded", String(!pop.hidden)); };
+for (const o of document.querySelectorAll(".opt")) o.onclick = () => { applyTheme(o.dataset.t); closePop(); };
+document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target)) closePop(); });
+document.addEventListener("keydown", e => { if (e.key==="Escape" && !pop.hidden) closePop(); });
+
+/* ---- TV mode ---- */
+let tv = false;
+function fitTv(){
+  if (!tv){ document.body.style.zoom = ""; return; }
+  const z = Math.max(1, Math.min(innerWidth / 1500, innerHeight / 860));
+  document.body.style.zoom = z.toFixed(3);
+}
+board.onTv(on => {
+  tv = !!on;
+  document.documentElement.classList.toggle("tv", tv);
+  $("btnTv").setAttribute("aria-pressed", String(tv));
+  $("btnTv").textContent = tv ? "🗗" : "⛶";
+  try{ localStorage.setItem("tv", tv ? "1" : "0"); }catch(_){}
+  fitTv();
+  if (last) render(last);
+});
+addEventListener("resize", fitTv);
+$("btnTv").onclick = () => board.setTv(!tv);
+document.addEventListener("keydown", e => { if (e.key==="F11"){ e.preventDefault(); board.setTv(!tv); } if (e.key==="Escape" && tv && $("recap").hidden && pop.hidden) board.setTv(false); });
+try{ if (localStorage.getItem("tv")==="1") board.setTv(true); }catch(_){}
+
+$("btnBoard").onclick = () => board.openBoard();
+$("btnFull").onclick = () => board.openBoard();
+$("btnHide").onclick = () => board.hide();
+$("btnRefresh").onclick = () => board.refresh();
+
+let period = "today", view = "team";
+try { const v = localStorage.getItem("period"); period = v === "week" ? "week" : "today"; const sv = localStorage.getItem("view"); view = ["camps","board"].includes(sv) ? sv : (v === "camps" ? "camps" : "team"); } catch(_){}
+let last = null;
+const splitOpen = {}; // rep id -> "int" | "ni" | null
+function setView(v){ view = v; try{ localStorage.setItem("view", v); }catch(_){}
+  $("vTeam").setAttribute("aria-selected", String(v==="team")); $("vCamps").setAttribute("aria-selected", String(v==="camps")); $("vBoard").setAttribute("aria-selected", String(v==="board"));
+  if (last) render(last); }
+$("vTeam").onclick = () => setView("team");
+$("vCamps").onclick = () => setView("camps");
+$("vBoard").onclick = () => setView("board");
+setView(view);
+function setPeriod(p){ period = p; try{ localStorage.setItem("period", p); }catch(_){}
+  $("pToday").setAttribute("aria-pressed", String(p==="today")); $("pWeek").setAttribute("aria-pressed", String(p==="week"));
+  if (last) render(last); }
+$("pToday").onclick = () => setPeriod("today");
+$("pWeek").onclick = () => setPeriod("week");
+setPeriod(period);
+
+function niceDay(ymd){ return new Date(ymd+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}); }
+const timeFmt = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit",second:"2-digit"});
+const etParts = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"numeric",hour12:false});
+
+// Idle: a rep with calls today but none in the last 15 minutes, during the workday (Mon-Fri, 8am-6pm Eastern)
+const IDLE_MIN = 15;
+function workingNow(){
+  const p = Object.fromEntries(etParts.formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const h = Number(p.hour) % 24;
+  return !["Sat","Sun"].includes(p.weekday) && h >= 8 && h < 18;
+}
+function idleMinutes(r){
+  if (r.manager || !r.calls || !r.lastCallTs || !workingNow()) return 0;
+  if (Date.now() - r.lastCallTs > 6*3600000) return 0; // not dialed in 6+ hours: done for the day, not "idle"
+  const m = Math.floor((Date.now() - r.lastCallTs) / 60000);
+  return m >= IDLE_MIN ? m : 0;
+}
+const idleText = m => m >= 60 ? "Idle " + Math.floor(m/60) + "h " + (m%60) + "m" : "Idle " + m + "m";
+
+// Active campaigns: every non-completed campaign the team is working, with totals since the campaign started
+function renderCampaigns(s, host){
+  const main = host || $("main"); main.replaceChildren();
+  // Only campaigns the team dialed today (or this week); the numbers are totals since each campaign started
+  const isWeek = period==="week";
+  const list = (s.campaigns || []).filter(c => isWeek ? c.ranWeek : c.ranToday);
+  const team = el("section","team");
+  team.append(el("div","k",list.length + (isWeek ? " ran this week · this week's numbers" : " ran today · today's numbers")));
+  main.append(team);
+  if (!list.length){
+    main.append(el("div","msg", s.campaignsListed ? (isWeek ? "No campaigns dialed this week yet." : "No campaigns dialed today yet.") : (s.weekReady ? "Loading campaigns…" : "Campaigns load right after this week's calls finish loading.")));
+    return;
+  }
+  const box = el("section","camps");
+  const h = el("div","camp h"); h.append(el("span",null,"Campaign"), el("span","n","Calls"), el("span","n","Int."), el("span","n","Not int.")); box.append(h);
+  for (const c of list){
+    const row = el("div","camp");
+    const nm = el("span","cn",c.name); nm.title = c.name;
+    nm.append(el("small",null, c.loading ? "All time: loading…" : "All time: " + fmt(c.calls) + " calls · " + fmt(c.interested) + " int · " + fmt(c.notInterested) + " not int"));
+    const pn = (isWeek ? c.week : c.today) || {calls:0,interested:0,notInterested:0};
+    row.append(nm, el("span","n",fmt(pn.calls)), el("span","n int",fmt(pn.interested)), el("span","n nint",fmt(pn.notInterested)));
+    box.append(row);
+  }
+  main.append(box);
+}
+
+// Leaderboard: reps ranked by calls for the period (manager not ranked)
+function renderLeaderboard(s, host){
+  const main = host || $("main"); main.replaceChildren();
+  const isWeek = period==="week";
+  const sum = isWeek ? s.week : s.today;
+  if (!sum) return;
+  const reps = sum.reps.filter(r=>!r.manager);
+  const label = isWeek ? "This week" : "Today";
+  const board = (title, list, big, small) => {
+    const head = el("section","team"); head.append(el("div","k", label + " · " + title)); main.append(head);
+    const box = el("section","lb");
+    list.forEach((r,i)=>{
+      const row = el("div","lbrow" + (i===0 ? " first" : ""));
+      row.append(el("span","rank", i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : String(i+1)));
+      const who = el("div","lbwho"); who.append(el("div","nm",r.name), small(r));
+      const v = el("div","lbcalls"); big(v, r);
+      row.append(who, v);
+      box.append(row);
+    });
+    main.append(box);
+  };
+  // 1. Interested contacts
+  board("Most interested",
+    reps.slice().sort((a,b)=> b.interested - a.interested || b.calls - a.calls),
+    (v,r)=>{ v.append(el("b","int",fmt(r.interested)), el("small",null," int.")); },
+    r=>{ const d = el("div","small"); d.append(document.createTextNode(fmt(r.calls) + " calls · " + pct(r.interested, r.calls) + "% of calls")); return d; });
+  // 2. Calls
+  board("Most calls",
+    reps.slice().sort((a,b)=> b.calls - a.calls || b.interested - a.interested),
+    (v,r)=>{ v.append(el("b",null,fmt(r.calls)), el("small",null, r.goal ? " / " + fmt(r.goal) : "")); },
+    r=>{ const d = el("div","small"); d.append(el("b","int",fmt(r.interested)), document.createTextNode(" int. · "), el("b","nint",fmt(r.notInterested)), document.createTextNode(" not int. · " + pct(r.human,r.calls) + "% connect")); return d; });
+}
+
+function render(s){
+  last = s;
+  const dot = $("dot");
+  dot.className = "dot" + (s.status==="live" ? " live" : (s.status==="offline"||s.status==="slow") ? " warn" : "");
+  const when = s.updatedAt ? timeFmt.format(new Date(s.updatedAt)) : null;
+  $("status").textContent =
+    s.status==="live" ? "Live · " + when :
+    s.status==="slow" ? "JustCall asked to slow down · checking every minute" :
+    s.status==="offline" ? (when ? "Offline · last update " + when : "Waiting for internet…") :
+    s.status==="needs-key" ? "Needs your JustCall API key" : "Loading today's calls…";
+
+  const main = $("main");
+  if (s.status==="needs-key" && !s.today){
+    main.replaceChildren(); const m=el("div","msg","Connect your JustCall API key to see today's numbers."); main.append(m);
+    const b=el("button","link","Connect JustCall"); b.onclick=()=>board.openSetup(); m.append(document.createElement("br"), b); return;
+  }
+  if (tv){
+    if (!main.querySelector(".pane")){
+      main.replaceChildren();
+      for (const t of ["Team","Active Campaigns","Leaderboard"]){ const pane = el("div","pane"); pane.append(el("div","ph",t), el("div","pb")); main.append(pane); }
+    }
+    const pb = main.querySelectorAll(".pane .pb");
+    renderTeam(s, pb[0]); renderCampaigns(s, pb[1]); renderLeaderboard(s, pb[2]);
+    return;
+  }
+  if (main.querySelector(".pane")) main.replaceChildren();
+  if (view==="camps"){ renderCampaigns(s); return; }
+  if (view==="board"){ renderLeaderboard(s); return; }
+  renderTeam(s, main);
+}
+function renderTeam(s, main){
+  const sum = period==="week" ? s.week : s.today;
+  if (!sum) return;
+  main.replaceChildren();
+  const isWeek = period==="week";
+
+  // team
+  const t = sum.team, tp = Math.min(100, pct(t.calls, t.goal));
+  const team = el("section","team");
+  const row = el("div","team-row");
+  const left = el("div");
+  left.append(el("div","k", isWeek ? "Week · " + sum.days + " day" + (sum.days>1?"s":"") : "Today · " + niceDay(sum.start).replace(/^\w+, /,"")));
+  const big = el("div","big", fmt(t.calls)); big.append(el("span","of"," / "+fmt(t.goal)));
+  left.append(big);
+  const mini = el("div","mini");
+  const a = el("span"); a.append(el("b","int",fmt(t.interested)), el("small",null,"Int."));
+  const b = el("span"); b.append(el("b","nint",fmt(t.notInterested)), el("small",null,"Not int."));
+  const c = el("span"); c.append(el("b",null,pct(t.human,t.calls)+"%"), el("small",null,"Connect"));
+  mini.append(a,b,c);
+  row.append(left, mini);
+  const tb = el("div","bar"+(t.calls>=t.goal?" met":"")); const ti=el("i"); ti.style.width=tp+"%"; tb.append(ti);
+  team.append(row, tb);
+  if (isWeek && !s.weekReady) team.append(el("div","k","Still loading earlier days…"));
+  main.append(team);
+
+  // reps
+  const reps = el("section","reps");
+  const mgrBox = el("section","reps");
+  for (const r of sum.reps){
+    const idle = isWeek ? 0 : idleMinutes(r);
+    const after = !isWeek && !r.manager && !workingNow();
+    const rep = el("div","rep" + (idle ? " idle" : ""));
+    rep.append(el("span","av",initials(r.name)), el("span","nm",r.name));
+    if (r.manager) rep.append(el("span","chip mgr","Manager"));
+    else {
+      const diff = r.calls - r.goal, met = diff>=0;
+      rep.append(el("span","chip "+(met?"met":"under"), met ? (diff===0?"On goal":"+"+fmt(diff)+" over") : fmt(-diff)+" short"));
+    }
+    const l2 = el("div","line2");
+    const nums = el("span","nums"); nums.append(el("b",null,fmt(r.calls)), document.createTextNode(r.manager ? " calls" : " / "+fmt(r.goal)));
+    l2.append(nums);
+    if (!r.manager){
+      const bar = el("div","bar"+(r.calls>=r.goal?" met":"")); const i=el("i"); i.style.width=Math.min(100,pct(r.calls,r.goal))+"%"; bar.append(i); l2.append(bar);
+    }
+    const l3 = el("div","line3");
+    if (idle) l3.append(el("span","idletag",idleText(idle)));
+    else if (after) l3.append(el("span","offtag","After hours"));
+    // Click "int." or "not int." to split that number by campaign; click again to close
+    const open = splitOpen[r.id];
+    const mk = (kind, n, cls, label) => {
+      const b = el("button","tog"); b.append(el("b",cls,fmt(n)), document.createTextNode(label));
+      b.setAttribute("aria-pressed", String(open===kind));
+      b.title = "Split by campaign";
+      if (!n) b.disabled = true;
+      b.onclick = () => { splitOpen[r.id] = open===kind ? null : kind; render(last); };
+      return b;
+    };
+    const x = mk("int", r.interested, "int", " int.");
+    const y = mk("ni", r.notInterested, "nint", " not int.");
+    const z = el("span","conn"); z.append(el("b",null,pct(r.human,r.calls)+"%"), document.createTextNode(" connect"));
+    l3.append(x,y,z);
+    rep.append(l2, l3);
+    if (open && (r.camps||[]).length){
+      const key = open==="int" ? "interested" : "notInterested";
+      const list = r.camps.filter(c=>c[key]>0).sort((a,b)=>b[key]-a[key]);
+      if (list.length){
+        const sp = el("div","split");
+        for (const c of list){ const row = el("div","s"); row.append(el("span",null,c.name)); row.append(el("b", open==="int"?"int":"nint", fmt(c[key]))); sp.append(row); }
+        rep.append(sp);
+      }
+    }
+    (r.manager ? mgrBox : reps).append(rep);
+  }
+  main.append(reps);
+  if (mgrBox.children.length){ main.append(el("div","k","Manager")); main.append(mgrBox); }
+}
+/* ---------- 5:30pm recap: covers the widget once each weekday ---------- */
+const RECAP_HOUR = 17, RECAP_MIN = 30;
+const etHM = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"numeric",minute:"numeric",hour12:false});
+function pastRecapTime(){
+  const p = Object.fromEntries(etHM.formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const h = Number(p.hour) % 24, m = Number(p.minute);
+  return !["Sat","Sun"].includes(p.weekday) && (h > RECAP_HOUR || (h === RECAP_HOUR && m >= RECAP_MIN));
+}
+const seenKey = () => "recapSeen";
+function recapSeenToday(){ try { return localStorage.getItem(seenKey()) === (last && last.today && last.today.start); } catch(_) { return false; } }
+function markRecapSeen(){ try { localStorage.setItem(seenKey(), last.today.start); } catch(_){} }
+
+function showRecap(){
+  if (!last || !last.today) return;
+  const t = last.today, box = $("recap");
+  const wasHidden = box.hidden;
+  box.replaceChildren();
+  const head = el("div","rh"); head.append(el("h2",null,"Today's recap · " + niceDay(t.start)));
+  const close = el("button","closebtn","Close"); close.onclick = () => { box.hidden = true; markRecapSeen(); };
+  head.append(close);
+  const body = el("div","rb");
+
+  const tm = t.team;
+  const top = el("div","team");
+  const tr = el("div","team-row"); const tl = el("div"); tl.append(el("div","k","Team calls"));
+  const big = el("div","big",fmt(tm.calls)); big.append(el("span","of"," / "+fmt(tm.goal))); tl.append(big, el("div","k",pct(tm.calls,tm.goal)+"% of goal"));
+  const mini = el("div","mini");
+  const a = el("span"); a.append(el("b","int",fmt(tm.interested)), el("small",null,"Int."));
+  const b = el("span"); b.append(el("b","nint",fmt(tm.notInterested)), el("small",null,"Not int."));
+  const c = el("span"); c.append(el("b",null,pct(tm.human,tm.calls)+"%"), el("small",null,"Connect"));
+  mini.append(a,b,c); tr.append(tl, mini); top.append(tr); body.append(top);
+
+  const table = el("table"); const hr = el("tr");
+  for (const h of ["Rep","Calls","Vs goal","Int.","Not","Conn."]) hr.append(el("th",null,h));
+  table.append(hr);
+  for (const r of t.reps){
+    const row = el("tr");
+    row.append(el("td",null,r.name.split(" ")[0] + (r.manager ? " (mgr)" : "")), el("td",null,fmt(r.calls)));
+    const g = el("td");
+    if (r.manager) g.textContent = "–";
+    else { const ok = r.calls >= r.goal; g.append(el("span", ok ? "ok" : "miss", ok ? "Hit" : fmt(r.goal - r.calls) + " short")); }
+    row.append(g, el("td",null,fmt(r.interested)), el("td",null,fmt(r.notInterested)), el("td",null,pct(r.human,r.calls)+"%"));
+    table.append(row);
+  }
+  body.append(table);
+
+  const ms = last.meetings || [];
+  const mw = el("div","mtg"); mw.append(el("div","k", ms.length ? "Interested and meetings (" + ms.length + ")" : "No interested or meetings logged today"));
+  const repName = id => { const r = t.reps.find(x=>x.id===id); return r ? r.name.split(" ")[0] : "Rep"; };
+  for (const m of ms){
+    const d = el("div","m"); d.append(el("b",null,m.contact || "Unknown contact"), el("span",null," · " + repName(m.agent) + (m.campaign ? " · " + m.campaign : "")));
+    if (m.note) d.append(el("p",null,m.note));
+    mw.append(d);
+  }
+  body.append(mw);
+  box.append(head, body);
+  box.hidden = false;
+  if (wasHidden) board.recapOpened(); // bring the widget to the front once, not on every update
+}
+function checkRecap(){
+  $("btnRecap").hidden = !(last && last.today && pastRecapTime());
+  if (pastRecapTime() && !recapSeenToday() && $("recap").hidden && last && last.status === "live") showRecap();
+}
+$("btnRecap").onclick = showRecap;
+board.onShowRecap(showRecap);
+
+// Meeting / Interested alerts inside the widget: stay for 3 minutes or until dismissed
+board.onAlert(a => {
+  const box = $("alerts");
+  const d = el("div","alert"); d.append(el("b",null,a.title));
+  const x = el("button","x","×"); x.setAttribute("aria-label","Dismiss"); x.onclick = () => d.remove();
+  d.append(x, el("p",null,a.body));
+  box.prepend(d);
+  while (box.children.length > 3) box.lastChild.remove();
+  setTimeout(() => d.remove(), 3*60000);
+});
+
+// The bull runs one length of the bar per refresh and turns around the moment new numbers land
+let bullDir = 0;
+board.onTick(t => {
+  const b = document.querySelector(".bull"); if (!b) return;
+  bullDir = bullDir ? 0 : 1;
+  b.style.transitionDuration = Math.max(1, ((t && t.next) || 5000) - 400) + "ms";
+  b.classList.toggle("back", bullDir === 0);
+  b.style.left = bullDir ? "calc(100% - 44px)" : "0px";
+});
+$("btnUpdate").onclick = () => board.installUpdate();
+board.onState(s => { $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
+setInterval(() => { if (last){ render(last); checkRecap(); } }, 30000); // keeps idle timers current and catches 5:30
+</script>
+</body>
+</html>
