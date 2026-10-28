@@ -304,9 +304,7 @@ function createWidget() {
   });
   widget.loadFile("widget.html");
   widget.once("ready-to-show", () => { widget.showInactive(); push(); });
-  widget.on("moved", () => { if (!widget.isFullScreen()) saveBounds(); }); widget.on("resized", () => { if (!widget.isFullScreen()) saveBounds(); });
-  widget.on("enter-full-screen", () => widget.webContents.send("tv", true));
-  widget.on("leave-full-screen", () => widget.webContents.send("tv", false));
+  widget.on("moved", () => { if (!tvOn) saveBounds(); }); widget.on("resized", () => { if (!tvOn) saveBounds(); });
   widget.on("close", e => { if (!app.isQuitting) { e.preventDefault(); widget.hide(); } });
   widget.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 }
@@ -334,7 +332,7 @@ function buildTray() {
     { label: "Show Bullpen", click: showWidget },
     { label: "Open full board (campaigns and reasons)", click: () => shell.openExternal(BOARD_URL) },
     { label: "Send a test pop-up", click: () => notifyMeeting({ id: "test-" + Date.now(), agent: REPS[0].id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." }) },
-    { label: "TV mode (full screen)", type: "checkbox", checked: !!(widget && !widget.isDestroyed() && widget.isFullScreen()), click: item => { showWidget(); setTv(item.checked); } },
+    { label: "TV mode (full screen)", type: "checkbox", checked: tvOn, click: item => { showWidget(); setTv(item.checked); } },
     { label: "Show today's recap", click: () => { showWidget(); widget && widget.webContents.send("show-recap"); } },
     { type: "separator" },
     { label: "Check for updates", click: () => { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); } },
@@ -369,17 +367,28 @@ function setupUpdates() {
   autoUpdater.on("error", () => {});
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 20000);
-  setInterval(check, 10 * 60000); // every 10 minutes
+  setInterval(check, 60000); // every minute
 }
 ipcMain.on("install-update", () => { if (updateReady && autoUpdater) { app.isQuitting = true; autoUpdater.quitAndInstall(false, true); } });
 ipcMain.on("check-updates", () => { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); });
 
 /* ---- TV mode: full screen on this monitor ---- */
-let tvBounds = null;
+// A transparent window can't use Windows' real full-screen mode, so TV mode stretches the window over the whole display instead
+let tvBounds = null, tvOn = false;
 function setTv(on) {
   if (!widget || widget.isDestroyed()) return;
-  if (on) { tvBounds = widget.getBounds(); widget.setAlwaysOnTop(false); widget.setFullScreen(true); }
-  else { widget.setFullScreen(false); if (tvBounds) widget.setBounds(tvBounds); }
+  if (on && !tvOn) {
+    tvBounds = widget.getBounds(); tvOn = true;
+    const d = screen.getDisplayMatching(tvBounds);
+    widget.setBounds(d.bounds);
+    widget.setSkipTaskbar(false);
+  } else if (!on && tvOn) {
+    tvOn = false;
+    widget.setSkipTaskbar(true);
+    if (tvBounds && onScreen(tvBounds)) widget.setBounds(tvBounds);
+    else { const wa = screen.getPrimaryDisplay().workArea; widget.setBounds({ x: wa.x + wa.width - 376, y: wa.y + 16, width: 360, height: 540 }); }
+  }
+  widget.webContents.send("tv", tvOn);
 }
 ipcMain.on("set-tv", (_e, on) => setTv(!!on));
 ipcMain.on("set-theme", (_e, t) => {

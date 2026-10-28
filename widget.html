@@ -137,7 +137,8 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 .camp .cn small{display:block;font-weight:400;color:var(--faint);font-size:11px}
 .camp .n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 /* ---- TV mode: full screen, all three sections side by side, scaled to the screen ---- */
-html.tv body{border:0;border-radius:0}
+html.tv body{border:0;border-radius:0;height:100vh}
+html.tv main{flex:1}
 html.tv .tabs>button{display:none}
 html.tv .tabs::before{content:"Team · Active Campaigns · Leaderboard";font-size:13px;font-weight:600;color:var(--muted)}
 html.tv main{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:22px;padding:22px 24px;align-items:start}
@@ -262,7 +263,7 @@ document.addEventListener("keydown", e => { if (e.key==="Escape" && !pop.hidden)
 let tv = false;
 function fitTv(){
   if (!tv){ document.body.style.zoom = ""; return; }
-  const z = Math.max(1, Math.min(innerWidth / 1500, innerHeight / 860));
+  const z = Math.max(1, Math.min(innerWidth / 1380, innerHeight / 760));
   document.body.style.zoom = z.toFixed(3);
 }
 board.onTv(on => {
