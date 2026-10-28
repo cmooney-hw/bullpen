@@ -327,7 +327,7 @@ function showWidget() { if (!widget || widget.isDestroyed()) createWidget(); els
 function buildTray() {
   const img = nativeImage.createFromPath(path.join(__dirname, "icon.png")).resize({ width: 16, height: 16 });
   tray = new Tray(img);
-  tray.setToolTip("Bullpen");
+  tray.setToolTip("Bullpen " + app.getVersion());
   const menu = () => Menu.buildFromTemplate([
     { label: "Show Bullpen", click: showWidget },
     { label: "Open full board (campaigns and reasons)", click: () => shell.openExternal(BOARD_URL) },

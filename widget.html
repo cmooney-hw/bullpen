@@ -387,10 +387,10 @@ function render(s){
   dot.className = "dot" + (s.status==="live" ? " live" : (s.status==="offline"||s.status==="slow") ? " warn" : "");
   const when = s.updatedAt ? timeFmt.format(new Date(s.updatedAt)) : null;
   $("status").textContent =
-    s.status==="live" ? "Live · " + when :
+    (s.status==="live" ? "Live · " + when :
     s.status==="slow" ? "JustCall asked to slow down · checking every minute" :
     s.status==="offline" ? (when ? "Offline · last update " + when : "Waiting for internet…") :
-    s.status==="needs-key" ? "Needs your JustCall API key" : "Loading today's calls…";
+    s.status==="needs-key" ? "Needs your JustCall API key" : "Loading today's calls…") + (s.version ? "  ·  v" + s.version : "");
 
   const main = $("main");
   if (s.status==="needs-key" && !s.today){
