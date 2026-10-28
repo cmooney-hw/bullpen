@@ -1,7 +1,8 @@
 name: Release
 on:
   push:
-    tags: ["v*"]
+    branches: ["main"]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -12,8 +13,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
+      - name: Skip if this version is already released
+        id: check
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: steps.check.outputs.exists == 'false'
+        run: npm ci
       - name: Build installer and publish release
+        if: steps.check.outputs.exists == 'false'
         run: npx electron-builder --win nsis --x64 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
