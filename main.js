@@ -367,7 +367,7 @@ function setupUpdates() {
   autoUpdater.on("error", () => {});
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 20000);
-  setInterval(check, 60000); // every minute
+  setInterval(check, 10000); // every 10 seconds
 }
 ipcMain.on("install-update", () => { if (updateReady && autoUpdater) { app.isQuitting = true; autoUpdater.quitAndInstall(false, true); } });
 ipcMain.on("check-updates", () => { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); });
