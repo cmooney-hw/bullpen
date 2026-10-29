@@ -112,7 +112,7 @@ function notifyMeeting(f) {
   const body = [f.contact, f.campaign].filter(Boolean).join(" · ") + (f.note ? "\n" + f.note.slice(0, 120) : "");
   // Windows pop-up
   try {
-    if (Notification.isSupported()) {
+    if (alertPrefs.toast && Notification.isSupported()) {
       const n = new Notification({ title, body, icon: path.join(__dirname, "icon.png") });
       n.on("click", showWidget); n.show();
     }
@@ -122,7 +122,7 @@ function notifyMeeting(f) {
     if (!widget.isVisible()) widget.showInactive();
     widget.webContents.send("alert", { title, body, at: Date.now(), agent: f.agent, test: String(f.id).startsWith("test-") });
   }
-  showCele({ title, body, theme });
+  if (alertPrefs.popup) showCele({ title, body, theme });
 }
 function maybeNotify(f, prev) {
   // Pop up for any call that turns Interested / Meeting Set after the widget started (or in the 15 minutes before)
@@ -533,6 +533,8 @@ function showCele(a) {
 }
 function closeCele() { clearTimeout(celeTimer); if (cele && !cele.isDestroyed()) cele.close(); cele = null; }
 ipcMain.on("cele-close", closeCele);
+let alertPrefs = { popup: true, toast: true };
+ipcMain.on("set-alerts", (_e, o) => { if (o && typeof o === "object") alertPrefs = Object.assign(alertPrefs, o); });
 ipcMain.on("test-alert", () => { const r = REPS[Math.floor(Math.random() * 3)]; notifyMeeting({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." }); });
 ipcMain.on("recap-opened", () => { if (widget && !widget.isDestroyed()) { widget.show(); widget.moveTop(); } });
 ipcMain.on("refresh-now", () => { if (!running) { clearTimeout(timer); tick(); } });

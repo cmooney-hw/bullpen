@@ -368,6 +368,8 @@ html.tv .cele .arena .wall{width:70px}
     <div class="k" style="margin-top:8px">Ticker</div>
     <button class="opt" id="optTicker" role="switch" aria-checked="true">Show latest-activity ticker<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Meeting set</div>
+    <button class="opt" id="optPopup" role="switch" aria-checked="true">Full-screen pop-up<span class="chk">✓</span></button>
+    <button class="opt" id="optToast" role="switch" aria-checked="true">Windows notification<span class="chk">✓</span></button>
     <button class="opt" id="optSound" role="switch" aria-checked="true">Play a chime<span class="chk">✓</span></button>
     <button class="opt" id="optFlash" role="switch" aria-checked="true">Flash the rep's card<span class="chk">✓</span></button>
     <button class="opt btn" id="optTest">Test it</button>
@@ -448,9 +450,16 @@ function renderTicker(s){
   run.style.setProperty("--tdur", Math.max(18, Math.round(run.textContent.length / 6)) + "s");
 }
 // Meeting-set celebration settings
-const cel = { sound: true, flash: true };
-try{ cel.sound = localStorage.getItem("celSound") !== "0"; cel.flash = localStorage.getItem("celFlash") !== "0"; }catch(_){}
-function applyCel(){ $("optSound").setAttribute("aria-checked", String(cel.sound)); $("optFlash").setAttribute("aria-checked", String(cel.flash)); try{ localStorage.setItem("celSound", cel.sound?"1":"0"); localStorage.setItem("celFlash", cel.flash?"1":"0"); }catch(_){} }
+const cel = { sound: true, flash: true, popup: true, toast: true };
+try{ cel.sound = localStorage.getItem("celSound") !== "0"; cel.flash = localStorage.getItem("celFlash") !== "0"; cel.popup = localStorage.getItem("celPopup") !== "0"; cel.toast = localStorage.getItem("celToast") !== "0"; }catch(_){}
+function applyCel(){
+  $("optSound").setAttribute("aria-checked", String(cel.sound)); $("optFlash").setAttribute("aria-checked", String(cel.flash));
+  $("optPopup").setAttribute("aria-checked", String(cel.popup)); $("optToast").setAttribute("aria-checked", String(cel.toast));
+  try{ localStorage.setItem("celSound", cel.sound?"1":"0"); localStorage.setItem("celFlash", cel.flash?"1":"0"); localStorage.setItem("celPopup", cel.popup?"1":"0"); localStorage.setItem("celToast", cel.toast?"1":"0"); }catch(_){}
+  board.setAlerts({ popup: cel.popup, toast: cel.toast });
+}
+$("optPopup").onclick = e => { e.stopPropagation(); cel.popup = !cel.popup; applyCel(); };
+$("optToast").onclick = e => { e.stopPropagation(); cel.toast = !cel.toast; applyCel(); };
 $("optSound").onclick = e => { e.stopPropagation(); cel.sound = !cel.sound; applyCel(); };
 $("optFlash").onclick = e => { e.stopPropagation(); cel.flash = !cel.flash; applyCel(); };
 $("optTest").onclick = e => { e.stopPropagation(); board.testAlert(); };
