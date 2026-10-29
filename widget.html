@@ -161,6 +161,12 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 html.tv .rep.cheer{animation-iteration-count:6}
 @media (prefers-reduced-motion:reduce){.rep.cheer{animation:none;background:rgba(70,192,138,.22)}}
 .opt.btn{justify-content:center;color:var(--accent)}
+/* Highwater H, faint, centered behind the board */
+body{position:relative}
+body::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:url(hw.png) no-repeat center 55%;background-size:auto 62%;opacity:.045}
+html[data-theme="clear"] body::before{background-image:url(hw-dark.png);opacity:.06}
+html.tv body::before{background-size:auto 68%;background-position:center 56%}
+body>*{position:relative;z-index:1}
 /* ticker under the title bar */
 .ticker{display:flex;align-items:center;gap:10px;height:26px;padding:0 14px;border-bottom:1px solid var(--line-soft);background:rgba(70,192,138,.06);overflow:hidden;font-size:12px;color:var(--muted);white-space:nowrap}
 .ticker[hidden]{display:none}
