@@ -715,14 +715,13 @@ function renderTeam(s, main){
       rep.append(el("span","chip "+(met?"met":"under"), met ? (diff===0?"On goal":"+"+fmt(diff)+" over") : fmt(-diff)+" short"));
     }
     const l2 = el("div","line2");
-    const nums = el("span","nums"); nums.insertAdjacentHTML("beforeend", PHONE_SVG); nums.append(el("b",null,fmt(r.calls)), document.createTextNode(r.manager ? " calls" : " / "+fmt(r.goal)+" calls"));
+    const nums = el("span","nums"); nums.append(el("b",null,fmt(r.calls)), document.createTextNode(r.manager ? " calls" : " / "+fmt(r.goal)+" calls"));
     l2.append(nums);
     if (!r.manager){
       const bar = el("div","bar"+(r.calls>=r.goal?" met":"")); const i=el("i"); i.style.width=Math.min(100,pct(r.calls,r.goal))+"%"; bar.append(i); l2.append(bar);
     }
     const l3 = el("div","line3");
     if (idle) l3.append(el("span","idletag",idleText(idle)));
-    else if (after) l3.append(el("span","offtag","After hours"));
     // Click "int." or "not int." to split that number by campaign; click again to close
     const open = splitOpen[r.id];
     const mk = (kind, n, cls, label) => {
