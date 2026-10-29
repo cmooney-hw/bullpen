@@ -134,7 +134,9 @@ html.tv .trend{display:block;grid-column:1/-1;align-self:end;padding:12px 16px 8
 .trend .grid{stroke:var(--line-soft);stroke-width:1}
 .trend .goal{stroke:var(--good);stroke-width:1;stroke-dasharray:4 4;opacity:.7}
 .trend path.ln{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
-.trend circle{stroke:var(--bg);stroke-width:1.5}
+.trend circle{stroke:var(--bg);stroke-width:1.5;cursor:default}
+.trend{position:relative}
+.trend .tip{position:absolute;transform:translate(-50%,-100%);background:var(--pop,#1b222a);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--fg);white-space:nowrap;pointer-events:none;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .rep.idle .av{border-color:var(--warn);color:var(--warn)}
 .idletag{color:var(--warn);font-weight:600}
 .offtag{color:var(--faint)}
@@ -595,13 +597,16 @@ function trendChart(sum, isWeek){
     goal = null; title = "Calls per hour";
   }
   const W = 1330, H = 130, padL = 34, padR = 10, padT = 8, padB = 20;
-  const maxV = Math.max(goal || 0, ...series.flat().filter(v => v != null), 1) * 1.1;
+  const step = isWeek ? 50 : 10;
+  const peak = Math.max(goal || 0, ...series.flat().filter(v => v != null), step);
+  const maxV = Math.ceil((peak + step * 0.3) / step) * step;
   const x = i => padL + i * (W - padL - padR) / (labels.length - 1);
   const y = v => padT + (H - padT - padB) * (1 - v / maxV);
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("preserveAspectRatio","none");
   const mk = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
-  for (let g = 0; g <= 3; g++){ const v = maxV * g / 3, yy = y(v); svg.append(mk("line",{x1:padL,x2:W-padR,y1:yy,y2:yy,class:"grid"})); const t = mk("text",{x:padL-6,y:yy+4,"text-anchor":"end"}); t.textContent = Math.round(v); svg.append(t); }
+  const every = Math.max(step, Math.ceil(maxV / 6 / step) * step); // keep to about 6 labelled lines
+  for (let v = 0; v <= maxV; v += every){ const yy = y(v); svg.append(mk("line",{x1:padL,x2:W-padR,y1:yy,y2:yy,class:"grid"})); const t = mk("text",{x:padL-6,y:yy+4,"text-anchor":"end"}); t.textContent = v; svg.append(t); }
   if (goal){ svg.append(mk("line",{x1:padL,x2:W-padR,y1:y(goal),y2:y(goal),class:"goal"})); }
   labels.forEach((l,i) => { const t = mk("text",{x:x(i),y:H-6,"text-anchor":"middle"}); t.textContent = l; svg.append(t); });
   series.forEach((pts,si) => {
@@ -609,8 +614,24 @@ function trendChart(sum, isWeek){
     let d = "";
     pts.forEach((v,i) => { if (v == null) return; d += (d ? " L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); });
     if (d) svg.append(mk("path",{d,class:"ln",stroke:col}));
-    pts.forEach((v,i) => { if (v == null) return; svg.append(mk("circle",{cx:x(i),cy:y(v),r:3.5,fill:col})); });
+    pts.forEach((v,i) => {
+      if (v == null) return;
+      const c = mk("circle",{cx:x(i),cy:y(v),r:3.5,fill:col,"data-v":v,"data-l":reps[si].name.split(" ")[0] + " · " + labels[i]});
+      svg.append(c);
+    });
   });
+  // hover: exact number for that point
+  const tip = el("div","tip"); tip.hidden = true; box.append(tip);
+  svg.addEventListener("pointerover", e => {
+    const c = e.target.closest("circle"); if (!c) return;
+    tip.textContent = c.dataset.l + ": " + fmt(c.dataset.v) + (isWeek ? " calls" : " calls");
+    tip.hidden = false;
+    const r = c.getBoundingClientRect(), br = box.getBoundingClientRect(), z = parseFloat(document.body.style.zoom) || 1;
+    tip.style.left = ((r.left + r.width/2 - br.left) / z) + "px";
+    tip.style.top = ((r.top - br.top) / z - 8) + "px";
+    c.setAttribute("r", 5.5);
+  });
+  svg.addEventListener("pointerout", e => { const c = e.target.closest("circle"); if (!c) return; tip.hidden = true; c.setAttribute("r", 3.5); });
   const ph = el("div","ph"); ph.append(el("span",null,title));
   const lg = el("div","lg"); reps.forEach((r,i) => { const sp = el("span"); const dot = el("i"); dot.style.background = REP_COLORS[i % REP_COLORS.length]; sp.append(dot, document.createTextNode(r.name.split(" ")[0])); lg.append(sp); });
   if (goal){ const sp = el("span"); const dot = el("i"); dot.style.background = "var(--good)"; sp.append(dot, document.createTextNode("Goal " + goal)); lg.append(sp); }
