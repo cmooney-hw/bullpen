@@ -58,7 +58,8 @@ function workdaysBetween(start, end) { let n = 0; for (let d = start; d <= end; 
 
 // calls: Map id -> facts. Numbers for the ET days start..end (inclusive).
 // (JustCall writes a call record only after the call ends, with its final pickup type and duration, so no settling delay is needed)
-function summarize(calls, start, end) {
+// manual: { "YYYY-MM-DD": { "<agent id>": { calls, meetings } } } hand-added credits (e.g. meetings booked off the dialer)
+function summarize(calls, start, end, manual) {
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
@@ -78,6 +79,16 @@ function summarize(calls, start, end) {
     if (c.notInterested) cc.notInterested++;
     if (c.human) { p.human++; cc.human++; }
     if (c.ts > p.lastCallTs) p.lastCallTs = c.ts;
+  }
+  // hand-added credits for days in range: each meeting is a call, a connection and an interested
+  for (const [day, byRep] of Object.entries(manual || {})) {
+    if (day < start || day > end) continue;
+    for (const [id, m] of Object.entries(byRep)) {
+      const p = per[Number(id)]; if (!p) continue;
+      const mc = Number(m.calls || 0), mm = Number(m.meetings || 0);
+      p.calls += mc; p.interested += mm; p.human += mm; p.manual = (p.manual || 0) + mm;
+      p.byDay[day] = (p.byDay[day] || 0) + mc;
+    }
   }
   const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, human: 0 };
   for (const r of REPS) {

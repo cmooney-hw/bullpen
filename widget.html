@@ -195,6 +195,7 @@ html.tv .trend{display:block;grid-column:1/-1;align-self:end;padding:12px 16px 8
 .trend .tip{position:absolute;transform:translate(-50%,-100%);background:var(--pop,#1b222a);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--fg);white-space:nowrap;pointer-events:none;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .rep.idle .av{border-color:var(--warn);color:var(--warn)}
 .idletag{color:var(--warn);font-weight:600}
+.mantag{color:var(--faint);font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6px}
 .offtag{color:var(--faint)}
 .line3 .conn{margin-left:auto;color:var(--faint)}
 .tog{all:unset;cursor:pointer;border-radius:5px;padding:1px 5px;margin:-1px -5px}
@@ -781,6 +782,7 @@ function renderTeam(s, main){
     const x = mk("int", r.interested, "int", " int.");
     const y = mk("ni", r.notInterested, "nint", " not int.");
     const z = el("span","conn"); z.append(el("b",null,pct(r.human,r.calls)+"%"), document.createTextNode(" connect"));
+    if (r.manual) l3.append(el("span","mantag", r.manual + " manual"));
     l3.append(x,y,z);
     rep.append(l2, l3);
     if (open && (r.camps||[]).length){

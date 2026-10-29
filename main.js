@@ -90,6 +90,17 @@ function rollDay() {
   if (fresh && loadCache()) push();
 }
 
+/* ---- manual credits: a small file in the repo (rep, day, counts only), re-read every minute ---- */
+const MANUAL_URL = "https://raw.githubusercontent.com/cmooney-hw/bullpen/main/manual.json";
+let manual = {};
+async function loadManual() {
+  try {
+    const r = await fetch(MANUAL_URL + "?t=" + Date.now(), { headers: { "Cache-Control": "no-cache" } });
+    if (r.ok) { const j = await r.json(); if (j && typeof j === "object") { manual = j; push(); } }
+  } catch (_) {}
+}
+setInterval(loadManual, 60000); setTimeout(loadManual, 3000);
+
 /* ---- meeting pop-ups ---- */
 function notifyMeeting(f) {
   if (notified.has(f.id)) return;
@@ -354,8 +365,8 @@ async function tick() {
 }
 
 function push() {
-  const today = feed.day ? summarize(feed.calls, feed.day) : null;
-  const week = feed.day ? summarize(feed.calls, feed.week, feed.day) : null;
+  const today = feed.day ? summarize(feed.calls, feed.day, feed.day, manual) : null;
+  const week = feed.day ? summarize(feed.calls, feed.week, feed.day, manual) : null;
   if (process.env.CALLBOARD_TEST_API) console.log("CAMPS", JSON.stringify(campaignSummary()));
   if (process.env.CALLBOARD_TEST_API) console.log("STATE", feed.status, feed.error || "", today ? JSON.stringify(today.team) : "", week ? "week " + week.team.calls + "/" + week.team.goal : "");
   if (!widget || widget.isDestroyed()) return;
