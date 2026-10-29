@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: windows-latest
@@ -22,7 +25,25 @@ jobs:
           if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: steps.check.outputs.exists == 'false'
+      # Reuse installed packages between runs (keyed on the lockfile)
+      - name: Cache node_modules
+        if: steps.check.outputs.exists == 'false'
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      # Reuse the Electron and NSIS downloads electron-builder makes
+      - name: Cache Electron and builder downloads
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: eb-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: eb-${{ runner.os }}-
+      - if: steps.check.outputs.exists == 'false' && steps.nm.outputs.cache-hit != 'true'
         run: npm ci
       - name: Build installer and publish release
         if: steps.check.outputs.exists == 'false'
