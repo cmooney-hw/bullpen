@@ -766,7 +766,7 @@ function trendChart(sum, isWeek){
     goal = GOAL_DAY; title = "Calls per day";
   } else {
     const hrs = []; for (let h = 8; h <= 18; h++) hrs.push(h);
-    labels = hrs.map(h => (h%12||12) + (h<12?"a":"p"));
+    labels = hrs.map(h => (h%12||12) + (h<12?" AM":" PM"));
     const nowH = Number(etParts.formatToParts(new Date()).find(p=>p.type==="hour").value.replace(/^24$/,"0"));
     series = reps.map(r => hrs.map(h => h <= nowH ? (r.hourly||[])[h] || 0 : null));
     goal = null; title = "Calls per hour";
