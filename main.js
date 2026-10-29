@@ -2,7 +2,7 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, safeStorage, powerMonitor, nativeImage, Notification } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { rowFacts, summarize, etYMD, addDays, mondayOf, REPS, decode } = require("./logic");
+const { rowFacts, summarize, etYMD, addDays, mondayOf, REPS, GOAL, decode } = require("./logic");
 let autoUpdater = null; try { autoUpdater = require("electron-updater").autoUpdater; } catch (_) {}
 
 const BOARD_URL = "https://claude.ai/artifact/6Jd2KCKpXAcM4nqeizhzGt";
