@@ -192,16 +192,22 @@ function trackCampaignCall(f) {
 }
 function campaignSummary() {
   // Which campaigns the team actually dialed today / this week (from the live week of calls)
-  const ranToday = new Set(), ranWeek = new Set(), per = {};
+  const ranToday = new Set(), ranWeek = new Set(), per = {}, names = {};
   const bump = (o, f) => { o.calls++; if (f.interested) o.interested++; if (f.notInterested) o.notInterested++; };
   for (const f of feed.calls.values()) {
     if (f.campaignId == null || !REP_IDS.has(f.agent)) continue;
     ranWeek.add(f.campaignId);
+    if (f.campaign) names[f.campaignId] = f.campaign;
     const p = per[f.campaignId] || (per[f.campaignId] = { today: { calls: 0, interested: 0, notInterested: 0 }, week: { calls: 0, interested: 0, notInterested: 0 } });
     bump(p.week, f);
     if (f.ymd === feed.day) { ranToday.add(f.campaignId); bump(p.today, f); }
   }
-  return [...camps.byId.values()].map(c => {
+  // Campaigns seen in this week's calls show right away (this week's numbers come from the calls we already have);
+  // the all-time history fills in once the loader gets to each one
+  const list = [...camps.byId.values()];
+  const have = new Set(list.map(c => c.id));
+  for (const id of ranWeek) if (!have.has(id)) list.push({ id, name: names[id] || ("Campaign " + id), created: "", calls: new Map(), loaded: false, pending: true });
+  return list.map(c => {
     let interested = 0, notInterested = 0;
     for (const v of c.calls.values()) { if (v.interested) interested++; if (v.notInterested) notInterested++; }
     const pp = per[c.id] || { today: { calls: 0, interested: 0, notInterested: 0 }, week: { calls: 0, interested: 0, notInterested: 0 } };
