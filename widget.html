@@ -730,10 +730,14 @@ board.onAlert(a => {
   const d = el("div","alert"); d.append(el("b",null,a.title));
   const x = el("button","x","×"); x.setAttribute("aria-label","Dismiss"); x.onclick = () => d.remove();
   d.append(x, el("p",null,a.body));
-  d.append(bullStage());
+  let stage = bullStage(); d.append(stage);
+  // the bull rebuilds the wall and charges again every 3 seconds until the banner goes
+  const loop = setInterval(() => { if (!d.isConnected) return clearInterval(loop); stage.remove(); stage = bullStage(); d.append(stage); }, 3000);
+  const gone = () => { clearInterval(loop); d.remove(); };
+  x.onclick = gone;
   box.prepend(d);
   while (box.children.length > 3) box.lastChild.remove();
-  setTimeout(() => d.remove(), 30000); // gone after 30 seconds
+  setTimeout(gone, 30000); // gone after 30 seconds
 });
 // The bull charges across the banner and smashes through a brick wall
 function bullStage(){
