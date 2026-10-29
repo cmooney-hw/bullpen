@@ -380,6 +380,7 @@ function setTv(on) {
   if (on && !tvOn) {
     tvBounds = widget.getBounds(); tvOn = true;
     const d = screen.getDisplayMatching(tvBounds);
+    applyMaterial();
     widget.setBounds(d.bounds);
     widget.setSkipTaskbar(false);
   } else if (!on && tvOn) {
@@ -387,6 +388,7 @@ function setTv(on) {
     widget.setSkipTaskbar(true);
     if (tvBounds && onScreen(tvBounds)) widget.setBounds(tvBounds);
     else { const wa = screen.getPrimaryDisplay().workArea; widget.setBounds({ x: wa.x + wa.width - 376, y: wa.y + 16, width: 360, height: 540 }); }
+    applyMaterial();
   }
   widget.webContents.send("tv", tvOn);
 }
@@ -406,10 +408,13 @@ ipcMain.on("drag-move", () => {
   widget.setPosition(c.x - grab.x, c.y - grab.y);
 });
 ipcMain.on("drag-end", () => { grab = null; if (widget && !widget.isDestroyed()) saveBounds(); });
-ipcMain.on("set-theme", (_e, t) => {
+// Acrylic (glass) is off in TV mode: Windows re-blurs the whole display on every repaint and it flashes
+let theme = "original";
+function applyMaterial() {
   if (!widget || widget.isDestroyed()) return;
-  try { widget.setBackgroundMaterial(t === "original" || !acrylicOk() ? "none" : "acrylic"); } catch (_) {}
-});
+  try { widget.setBackgroundMaterial(theme === "original" || tvOn || !acrylicOk() ? "none" : "acrylic"); } catch (_) {}
+}
+ipcMain.on("set-theme", (_e, t) => { theme = t; applyMaterial(); });
 ipcMain.on("recap-opened", () => { if (widget && !widget.isDestroyed()) { widget.show(); widget.moveTop(); } });
 ipcMain.on("refresh-now", () => { if (!running) { clearTimeout(timer); tick(); } });
 ipcMain.handle("save-creds", async (_e, c) => {

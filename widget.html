@@ -137,7 +137,9 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 .camp .cn small{display:block;font-weight:400;color:var(--faint);font-size:11px}
 .camp .n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 /* ---- TV mode: full screen, all three sections side by side, scaled to the screen ---- */
-html.tv body{border:0;border-radius:0;height:100vh}
+html.tv body{border:0;border-radius:0;height:100vh;background:var(--tvbg,#1a1d26)}
+html.tv[data-theme="obsidian"] body{--tvbg:#1b1114}
+html.tv[data-theme="clear"] body{--tvbg:#f2f3f6}
 html.tv .bar-top{-webkit-app-region:no-drag;cursor:grab}
 html.tv main{flex:1}
 html.tv .tabs>button{display:none}
