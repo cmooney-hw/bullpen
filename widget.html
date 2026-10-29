@@ -65,6 +65,17 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13
 .track{flex:1;position:relative;height:28px;margin:0 8px;pointer-events:none;overflow:hidden}
 .bull{position:absolute;top:0;left:0;width:50px;height:28px;transition:left 4.6s linear}
 .bull .rigbox{display:block;position:relative;width:48px;height:28px}
+/* hoof prints left on the title bar, fading away */
+.prints{position:absolute;inset:0;pointer-events:none}
+.print{position:absolute;bottom:3px;width:3px;height:2px;border-radius:50%;background:var(--muted);opacity:.55;animation:printfade 7s linear forwards}
+@keyframes printfade{to{opacity:0}}
+/* smoke from the nostrils now and then */
+.smoke{position:absolute;right:-2px;top:14px;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.75);opacity:0;pointer-events:none}
+.smoke.b{right:-6px;top:17px;width:4px;height:4px}
+.bull.puff .smoke{animation:puff 1.6s ease-out forwards}
+.bull.puff .smoke.b{animation-delay:.25s}
+@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.5)}15%{opacity:.8}100%{opacity:0;transform:translate(10px,-10px) scale(2.2)}}
+@media (prefers-reduced-motion:reduce){.print,.bull.puff .smoke{animation:none;opacity:0}}
 /* layered bull cut along the contours: legs (thigh + lower leg) and tail sit behind the body, which hides the joints */
 .rig{position:absolute;left:0;top:0;width:893px;height:515px;transform-origin:0 0;transform:scale(var(--s,1))}
 .rig img,.rig .leg,.rig .lower,.rig .tail{position:absolute;display:block;max-width:none}
@@ -303,7 +314,7 @@ html.tv .cele .arena .wall{width:70px}
   <div class="bar-top">
     <span class="dot" id="dot"></span>
     <span class="ttl">Bullpen</span>
-    <span class="track" aria-hidden="true"><span class="bull"><span class="bob"><span class="rigbox"></span></span></span></span>
+    <span class="track" aria-hidden="true"><span class="prints" id="prints"></span><span class="bull"><span class="bob"><span class="rigbox"><span class="smoke"></span><span class="smoke b"></span></span></span></span></span>
     <button class="ib" id="btnRefresh" title="Refresh now" aria-label="Refresh now">↻</button>
     <button class="ib" id="btnBoard" title="Open full board" aria-label="Open full board">↗</button>
     <button class="ib" id="btnTv" title="TV mode (full screen)" aria-label="TV mode" aria-pressed="false">⛶</button>
@@ -879,6 +890,15 @@ function bullStroll(){
 }
 { const b = document.querySelector(".bull"); if (b){ b.addEventListener("transitionend", e => { if (e.propertyName === "left") setTimeout(bullStroll, 600); }); setTimeout(bullStroll, 800); } }
 board.onTick(() => {});
+// hoof prints behind him while he walks, and a puff of smoke every so often
+setInterval(() => {
+  const b = document.querySelector(".bull"), box = $("prints"); if (!b || !box || document.hidden) return;
+  const x = b.offsetLeft + (b.classList.contains("back") ? 36 : 8) + (Math.random() * 6 - 3);
+  const pr = el("span","print"); pr.style.left = x + "px"; pr.style.bottom = (2 + Math.round(Math.random()*3)) + "px";
+  box.append(pr); setTimeout(() => pr.remove(), 7200);
+  while (box.children.length > 24) box.firstChild.remove();
+}, 900);
+(function puffLoop(){ const b = document.querySelector(".bull"); if (b){ b.classList.remove("puff"); void b.offsetWidth; b.classList.add("puff"); } setTimeout(puffLoop, 6000 + Math.random()*6000); })();
 $("btnUpdate").onclick = () => board.installUpdate();
 board.onState(s => { $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
 setInterval(() => { if (last){ render(last); checkRecap(); } }, 30000); // keeps idle timers current and catches 5:30
