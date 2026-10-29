@@ -241,18 +241,19 @@ function campaignSummary() {
 }
 
 /* ---- background loader: fills in the rest of the week, a page every 3 seconds, picks up where it left off ---- */
-const backfill = { page: 1, done: false, running: false, resyncAt: 0 };
-// Every 5 minutes re-read all of today's calls so disposition edits made later in JustCall show up on every screen
-const RESYNC_MS = 5 * 60000;
-async function resyncToday(creds) {
-  for (let page = 0; page < 40; page++) {
+const backfill = { page: 1, done: false, running: false, resyncAt: 0, resyncWeekAt: 0 };
+// Re-read today's calls every 5 minutes and the whole week every 15, so disposition edits made later in JustCall show up on every screen
+const RESYNC_MS = 5 * 60000, RESYNC_WEEK_MS = 15 * 60000;
+async function resync(creds, fromDay) {
+  for (let page = 0; page < 60; page++) {
     const rows = await getCalls(creds, Object.assign(range(feed.day), { per_page: 100, page, sort: "id", order: "desc" }));
     let older = false;
-    for (const r of rows) { const f = rowFacts(r); if (f.ymd < feed.day) { older = true; continue; } const prev = feed.calls.get(f.id); feed.calls.set(f.id, f); cacheDirty = true; trackCampaignCall(f); maybeNotify(f, prev); }
+    for (const r of rows) { const f = rowFacts(r); if (f.ymd < fromDay) { older = true; continue; } const prev = feed.calls.get(f.id); feed.calls.set(f.id, f); cacheDirty = true; trackCampaignCall(f); maybeNotify(f, prev); }
     if (older || rows.length < 100) break;
     await sleep(1500);
   }
   backfill.resyncAt = Date.now();
+  if (fromDay === feed.week) backfill.resyncWeekAt = Date.now();
   push();
 }
 
@@ -309,8 +310,10 @@ async function runBackfill() {
       } else if (Date.now() - camps.listedAt > 10 * 60000 || camps.relist) {
         camps.relist = false;
         await listCampaigns(creds); push();          // refresh which campaigns are active every 10 minutes
+      } else if (Date.now() - backfill.resyncWeekAt > RESYNC_WEEK_MS) {
+        await resync(creds, feed.week);
       } else if (Date.now() - backfill.resyncAt > RESYNC_MS) {
-        await resyncToday(creds);
+        await resync(creds, feed.day);
       } else if (!(await loadCampaignPage(creds))) {
         await sleep(15000); continue;                 // nothing to load right now
       }
