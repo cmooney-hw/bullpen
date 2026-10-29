@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13
 .rig .near-front .lower{left:46px;top:100px;transform-origin:41px 26px}
 .rig .tail{left:1px;top:106px;transform-origin:102px 41px}
 .rig.run .near-front,.rig.run .far-hind{animation:hip .4s ease-in-out infinite alternate}
+.bull .rig .leg,.bull .rig .lower,.bull .rig .tail{animation-duration:.7s!important}
 .rig.run .near-hind,.rig.run .far-front{animation:hip .4s ease-in-out infinite alternate-reverse}
 .rig.run .near-front .lower,.rig.run .far-hind .lower{animation:knee .4s ease-in-out infinite alternate;animation-delay:-.13s}
 .rig.run .near-hind .lower,.rig.run .far-front .lower{animation:knee .4s ease-in-out infinite alternate-reverse;animation-delay:-.13s}
@@ -867,14 +868,17 @@ function bullStage(){
 }
 
 // The bull runs one length of the bar per refresh and turns around the moment new numbers land
+// The bull strolls the title bar at his own pace (one length every 14 s), turning at each end
 let bullDir = 0;
-board.onTick(t => {
+function bullStroll(){
   const b = document.querySelector(".bull"); if (!b) return;
   bullDir = bullDir ? 0 : 1;
-  b.style.transitionDuration = Math.max(1, ((t && t.next) || 5000) - 400) + "ms";
+  b.style.transitionDuration = "14000ms";
   b.classList.toggle("back", bullDir === 0);
   b.style.left = bullDir ? "calc(100% - 48px)" : "0px";
-});
+}
+{ const b = document.querySelector(".bull"); if (b){ b.addEventListener("transitionend", e => { if (e.propertyName === "left") setTimeout(bullStroll, 600); }); setTimeout(bullStroll, 800); } }
+board.onTick(() => {});
 $("btnUpdate").onclick = () => board.installUpdate();
 board.onState(s => { $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
 setInterval(() => { if (last){ render(last); checkRecap(); } }, 30000); // keeps idle timers current and catches 5:30
