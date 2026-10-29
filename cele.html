@@ -17,19 +17,19 @@ html,body{margin:0;height:100%;background:transparent;font-family:"Segoe UI Vari
 .arena .stage{right:40px;width:70%;max-width:none}
 .arena .wall{width:8%;min-width:50px;right:24px;top:10%;bottom:10%}
 .arena .runner{width:clamp(90px,15vw,170px);height:auto;aspect-ratio:100/64;margin-top:0;transform:translateY(-50%)}
-.arena .runner{aspect-ratio:453/257;height:auto}
+.arena .runner{aspect-ratio:893/515;height:auto}
 /* layered bull: body + four legs (thigh + lower leg) cut from the clipart; hips and knees swing */
-.rig{position:absolute;left:0;top:0;width:453px;height:257px;transform-origin:0 0;transform:scale(var(--s,1))}
+.rig{position:absolute;left:0;top:0;width:893px;height:515px;transform-origin:0 0;transform:scale(var(--s,1))}
 .rig img,.rig .leg,.rig .lower{position:absolute;display:block;max-width:none}
 .rig .body{left:0;top:0}
-.rig .far-hind{left:28px;top:140px;width:49px;height:72px;transform-origin:50% 8px}
-.rig .far-hind .lower{left:-2px;top:58px;transform-origin:50% 7px}
-.rig .far-front{left:210px;top:146px;width:52px;height:64px;transform-origin:50% 8px}
-.rig .far-front .lower{left:0px;top:50px;transform-origin:50% 7px}
-.rig .near-hind{left:56px;top:138px;width:77px;height:74px;transform-origin:50% 8px}
-.rig .near-hind .lower{left:36px;top:60px;transform-origin:50% 7px}
-.rig .near-front{left:262px;top:140px;width:69px;height:67px;transform-origin:50% 8px}
-.rig .near-front .lower{left:24px;top:53px;transform-origin:50% 7px}
+.rig .far-hind{left:41px;top:277px;width:104px;height:147px;transform-origin:50% 16px}
+.rig .far-hind .lower{left:-3px;top:115px;transform-origin:50% 14px}
+.rig .far-front{left:408px;top:289px;width:108px;height:131px;transform-origin:50% 16px}
+.rig .far-front .lower{left:0px;top:99px;transform-origin:50% 14px}
+.rig .near-hind{left:100px;top:273px;width:157px;height:151px;transform-origin:50% 16px}
+.rig .near-hind .lower{left:68px;top:119px;transform-origin:50% 14px}
+.rig .near-front{left:512px;top:277px;width:144px;height:137px;transform-origin:50% 16px}
+.rig .near-front .lower{left:47px;top:105px;transform-origin:50% 14px}
 .rig.run .near-front,.rig.run .far-hind{animation:hip .38s ease-in-out infinite alternate}
 .rig.run .near-hind,.rig.run .far-front{animation:hip .38s ease-in-out infinite alternate-reverse}
 .rig.run .near-front .lower,.rig.run .far-hind .lower{animation:knee .38s ease-in-out infinite alternate;animation-delay:-.12s}
@@ -66,7 +66,7 @@ function makeRig(){ const r=document.createElement("div"); r.className="rig run"
   const img=(n)=>{ const i=document.createElement("img"); i.src="rig-"+n+".png"; i.alt=""; i.draggable=false; return i; };
   const leg=(n)=>{ const l=document.createElement("div"); l.className="leg "+n; l.append(img(n+"-upper")); const lo=document.createElement("div"); lo.className="lower"; lo.append(img(n+"-lower")); l.append(lo); return l; };
   r.append(leg("far-hind"), leg("far-front")); const b=img("body"); b.className="body"; r.append(b); r.append(leg("near-hind"), leg("near-front")); return r; }
-function fitRig(host){ const r=host.querySelector(".rig"); if (r) r.style.setProperty("--s", (host.clientWidth/453).toFixed(4)); }
+function fitRig(host){ const r=host.querySelector(".rig"); if (r) r.style.setProperty("--s", (host.clientWidth/893).toFixed(4)); }
 function bullStage(){
   const stage=el("div","stage"), wall=el("div","wall");
   for(let i=0;i<6;i++){const b=el("i");const dir=i%2?1:-1;b.style.setProperty("--dx",(60+Math.random()*120)+"px");b.style.setProperty("--dy",(dir*(30+Math.random()*70))+"px");b.style.setProperty("--rot",(dir*(90+Math.random()*180))+"deg");b.style.animationDelay=(1.35+Math.random()*0.12)+"s";wall.append(b);}
