@@ -69,22 +69,23 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13
 .rig{position:absolute;left:0;top:0;width:893px;height:515px;transform-origin:0 0;transform:scale(var(--s,1))}
 .rig img,.rig .leg,.rig .lower,.rig .tail{position:absolute;display:block;max-width:none}
 .rig .body{left:0;top:0}
-.rig .far-hind{left:43px;top:277px;width:105px;height:140px;transform-origin:67px 22px}
-.rig .far-hind .lower{left:-4px;top:114px;transform-origin:20px 18px}
-.rig .near-hind{left:102px;top:273px;width:129px;height:144px;transform-origin:50px 22px}
-.rig .near-hind .lower{left:74px;top:108px;transform-origin:27px 28px}
-.rig .far-front{left:410px;top:289px;width:108px;height:124px;transform-origin:53px 22px}
-.rig .far-front .lower{left:0px;top:87px;transform-origin:54px 29px}
-.rig .near-front{left:513px;top:277px;width:128px;height:130px;transform-origin:63px 22px}
-.rig .near-front .lower{left:47px;top:101px;transform-origin:41px 21px}
+.rig .leg>img{position:relative;z-index:2}.rig .lower{z-index:1}
+.rig .far-hind{left:43px;top:265px;width:105px;height:144px;transform-origin:67px 24px}
+.rig .far-hind .lower{left:-4px;top:110px;transform-origin:20px 26px}
+.rig .near-hind{left:102px;top:261px;width:126px;height:148px;transform-origin:46px 24px}
+.rig .near-hind .lower{left:76px;top:114px;transform-origin:25px 26px}
+.rig .far-front{left:410px;top:277px;width:108px;height:128px;transform-origin:53px 24px}
+.rig .far-front .lower{left:0px;top:94px;transform-origin:55px 26px}
+.rig .near-front{left:514px;top:265px;width:127px;height:134px;transform-origin:63px 24px}
+.rig .near-front .lower{left:46px;top:100px;transform-origin:41px 26px}
 .rig .tail{left:1px;top:106px;transform-origin:102px 41px}
-.rig.run .near-front,.rig.run .far-hind{animation:hip .38s ease-in-out infinite alternate}
-.rig.run .near-hind,.rig.run .far-front{animation:hip .38s ease-in-out infinite alternate-reverse}
-.rig.run .near-front .lower,.rig.run .far-hind .lower{animation:knee .38s ease-in-out infinite alternate;animation-delay:-.12s}
-.rig.run .near-hind .lower,.rig.run .far-front .lower{animation:knee .38s ease-in-out infinite alternate-reverse;animation-delay:-.12s}
-.rig.run .tail{animation:swish .76s ease-in-out infinite alternate}
-@keyframes hip{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
-@keyframes knee{from{transform:rotate(-6deg)}to{transform:rotate(24deg)}}
+.rig.run .near-front,.rig.run .far-hind{animation:hip .4s ease-in-out infinite alternate}
+.rig.run .near-hind,.rig.run .far-front{animation:hip .4s ease-in-out infinite alternate-reverse}
+.rig.run .near-front .lower,.rig.run .far-hind .lower{animation:knee .4s ease-in-out infinite alternate;animation-delay:-.13s}
+.rig.run .near-hind .lower,.rig.run .far-front .lower{animation:knee .4s ease-in-out infinite alternate-reverse;animation-delay:-.13s}
+.rig.run .tail{animation:swish .8s ease-in-out infinite alternate}
+@keyframes hip{from{transform:rotate(-9deg)}to{transform:rotate(9deg)}}
+@keyframes knee{from{transform:rotate(-4deg)}to{transform:rotate(26deg)}}
 @keyframes swish{from{transform:rotate(-10deg)}to{transform:rotate(12deg)}}
 @media (prefers-reduced-motion:reduce){.rig .leg,.rig .lower,.rig .tail{animation:none!important}}
 .bull.back .rigbox{transform:scaleX(-1)}

@@ -301,7 +301,7 @@ function createWidget() {
     frame: false, resizable: true, skipTaskbar: true, show: false, maximizable: false, fullscreenable: false,
     transparent: true, backgroundColor: "#00000000", hasShadow: true, title: "Bullpen", icon: path.join(__dirname, "icon.png"),
     backgroundMaterial: acrylicOk() ? "acrylic" : "none",
-    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true }
+    icon: path.join(__dirname, "icon.png"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
   widget.loadFile("widget.html");
   widget.once("ready-to-show", () => { widget.showInactive(); push(); });
@@ -315,7 +315,7 @@ function openSetup(message) {
   setupWin = new BrowserWindow({
     width: 460, height: 520, resizable: false, autoHideMenuBar: true, title: "Bullpen setup",
     backgroundColor: "#0e1115", icon: path.join(__dirname, "icon.png"),
-    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true }
+    icon: path.join(__dirname, "icon.png"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
   setupWin.loadFile("setup.html");
   if (message) setupWin.webContents.once("did-finish-load", () => setupWin.webContents.send("setup-message", message));
@@ -423,7 +423,7 @@ function showCele(a) {
   const d = screen.getDisplayMatching(base);
   clearTimeout(celeTimer);
   if (!cele || cele.isDestroyed()) {
-    cele = new BrowserWindow({ ...d.bounds, frame: false, transparent: true, backgroundColor: "#00000000", alwaysOnTop: true, skipTaskbar: true, resizable: false, movable: false, hasShadow: false, show: false, webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false } });
+    cele = new BrowserWindow({ ...d.bounds, frame: false, transparent: true, backgroundColor: "#00000000", alwaysOnTop: true, skipTaskbar: true, resizable: false, movable: false, hasShadow: false, show: false, icon: path.join(__dirname, "icon.png"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false } });
     cele.setAlwaysOnTop(true, "screen-saver");
     cele.loadFile(path.join(__dirname, "cele.html"));
     cele.once("ready-to-show", () => { cele.show(); cele.webContents.send("cele", a); });
