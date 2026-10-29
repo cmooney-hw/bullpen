@@ -109,6 +109,7 @@ function notifyMeeting(f) {
     if (!widget.isVisible()) widget.showInactive();
     widget.webContents.send("alert", { title, body, at: Date.now(), agent: f.agent, test: String(f.id).startsWith("test-") });
   }
+  showCele({ title, body, theme });
 }
 function maybeNotify(f, prev) {
   // Pop up for any call that turns Interested / Meeting Set after the widget started (or in the 15 minutes before)
@@ -415,6 +416,25 @@ function applyMaterial() {
   try { widget.setBackgroundMaterial(theme === "original" || tvOn || !acrylicOk() ? "none" : "acrylic"); } catch (_) {}
 }
 ipcMain.on("set-theme", (_e, t) => { theme = t; applyMaterial(); });
+/* ---- full-screen meeting pop-up: its own always-on-top window the size of the display ---- */
+let cele = null, celeTimer = null;
+function showCele(a) {
+  const base = widget && !widget.isDestroyed() ? widget.getBounds() : screen.getPrimaryDisplay().bounds;
+  const d = screen.getDisplayMatching(base);
+  clearTimeout(celeTimer);
+  if (!cele || cele.isDestroyed()) {
+    cele = new BrowserWindow({ ...d.bounds, frame: false, transparent: true, backgroundColor: "#00000000", alwaysOnTop: true, skipTaskbar: true, resizable: false, movable: false, hasShadow: false, show: false, webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false } });
+    cele.setAlwaysOnTop(true, "screen-saver");
+    cele.loadFile(path.join(__dirname, "cele.html"));
+    cele.once("ready-to-show", () => { cele.show(); cele.webContents.send("cele", a); });
+    cele.on("closed", () => { cele = null; });
+  } else {
+    cele.setBounds(d.bounds); cele.show(); cele.webContents.send("cele", a);
+  }
+  celeTimer = setTimeout(closeCele, 30000);
+}
+function closeCele() { clearTimeout(celeTimer); if (cele && !cele.isDestroyed()) cele.close(); cele = null; }
+ipcMain.on("cele-close", closeCele);
 ipcMain.on("test-alert", () => { const r = REPS[Math.floor(Math.random() * 3)]; notifyMeeting({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." }); });
 ipcMain.on("recap-opened", () => { if (widget && !widget.isDestroyed()) { widget.show(); widget.moveTop(); } });
 ipcMain.on("refresh-now", () => { if (!running) { clearTimeout(timer); tick(); } });

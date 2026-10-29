@@ -747,20 +747,7 @@ function closeCele(){ clearTimeout(celeTimer); clearInterval(celeLoop); const c 
 board.onAlert(a => {
   if (cel.sound) chime();
   if (cel.flash) cheer(a.agent);
-  closeCele();
-  const c = $("cele");
-  const card = el("div","card"); card.append(el("b",null,a.title));
-  const x = el("button","x","×"); x.setAttribute("aria-label","Dismiss"); x.onclick = closeCele;
-  card.append(x, el("p",null,a.body));
-  const arena = el("div","arena"); card.append(arena);
-  let stage = bullStage(); arena.append(stage);
-  // the wall rebuilds and the bull charges again every 3 seconds until the pop-up goes
-  celeLoop = setInterval(() => { stage.remove(); stage = bullStage(); arena.append(stage); }, 3000);
-  c.append(card); c.hidden = false;
-  celeTimer = setTimeout(closeCele, 30000); // gone after 30 seconds
 });
-$("cele").addEventListener("click", e => { if (e.target === $("cele")) closeCele(); });
-document.addEventListener("keydown", e => { if (e.key==="Escape" && !$("cele").hidden) closeCele(); });
 // The bull charges across the banner and smashes through a brick wall
 function bullStage(){
   const stage = el("div","stage");
