@@ -182,7 +182,11 @@ html.tv[data-theme="clear"] body{--tvbg:#f2f3f6}
 html.tv .bar-top{-webkit-app-region:no-drag;cursor:grab}
 html.tv main{flex:1}
 html.tv .tabs>button{display:none}
-html.tv .tabs::before{content:"Team · Active Campaigns · Leaderboard";font-size:13px;font-weight:600;color:var(--muted)}
+.clock{display:none}
+html.tv .clock{display:flex;align-items:baseline;gap:14px;font-variant-numeric:tabular-nums}
+html.tv .clock .tm{font-family:var(--f-mono);font-size:26px;font-weight:600;color:var(--fg);letter-spacing:.02em;line-height:1}
+html.tv .clock .tm small{font-size:14px;color:var(--muted);margin-left:5px;font-weight:500}
+html.tv .clock .dt{font-size:14px;color:var(--muted);font-weight:500}
 html.tv main{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:22px;padding:22px 24px;align-items:start;min-height:0;overflow:hidden}
 html.tv .pane{max-height:100%;overflow:hidden}
 html.tv .pane{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -282,6 +286,7 @@ html.tv .cele .arena .wall{width:70px}
     <button class="ib" id="btnHide" title="Hide (still runs in the tray)" aria-label="Hide">–</button>
   </div>
   <nav class="tabs" role="tablist" aria-label="Section">
+    <div class="clock" id="clock" aria-live="off"><span class="tm" id="clockTm"></span><span class="dt" id="clockDt"></span></div>
     <button id="vTeam" role="tab" aria-selected="true">Team</button>
     <button id="vCamps" role="tab" aria-selected="false">Active Campaigns</button>
     <button id="vBoard" role="tab" aria-selected="false">Leaderboard</button>
@@ -382,6 +387,7 @@ function fitTv(){
 board.onTv(on => {
   tv = !!on;
   document.documentElement.classList.toggle("tv", tv);
+  tickClock();
   $("btnTv").setAttribute("aria-pressed", String(tv));
   $("btnTv").textContent = tv ? "🗗" : "⛶";
   try{ localStorage.setItem("tv", tv ? "1" : "0"); }catch(_){}
@@ -389,6 +395,17 @@ board.onTv(on => {
   if (last) render(last);
 });
 addEventListener("resize", fitTv);
+// Full-screen clock in place of the tabs
+const clockTm = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit"});
+const clockDt = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"long",month:"long",day:"numeric"});
+function tickClock(){
+  if (!tv) return;
+  const now = new Date();
+  const t = clockTm.format(now); const m = t.match(/^(.*?)\s*(AM|PM)$/i);
+  $("clockTm").replaceChildren(document.createTextNode(m ? m[1] : t), Object.assign(el("small"), { textContent: m ? m[2] : "" }));
+  $("clockDt").textContent = clockDt.format(now);
+}
+setInterval(tickClock, 1000);
 // In TV mode, grabbing the title bar pulls the widget back down to its small size under the cursor, like dragging a maximized browser window
 (function(){
   const bar = document.querySelector(".bar-top");
