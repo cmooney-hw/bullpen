@@ -7,6 +7,7 @@
   "author": "Highwater",
   "license": "UNLICENSED",
   "scripts": {
+    "smoke": "electron smoke.js",
     "start": "electron .",
     "dist": "electron-builder --win nsis --x64"
   },

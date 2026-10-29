@@ -45,6 +45,10 @@ jobs:
           restore-keys: eb-${{ runner.os }}-
       - if: steps.check.outputs.exists == 'false' && steps.nm.outputs.cache-hit != 'true'
         run: npm ci
+      - name: Smoke test (app must start without throwing)
+        if: steps.check.outputs.exists == 'false'
+        shell: bash
+        run: npx electron smoke.js 2>&1 | tee smoke.log; grep -q "SMOKE OK" smoke.log
       - name: Build installer and publish release
         if: steps.check.outputs.exists == 'false'
         run: npx electron-builder --win nsis --x64 --publish always
