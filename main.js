@@ -364,7 +364,8 @@ function setupUpdates() {
   if (!autoUpdater || !app.isPackaged) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on("update-downloaded", info => { updateReady = info.version; push(); });
+  // Install as soon as it's downloaded: the app closes and comes straight back on the new version
+  autoUpdater.on("update-downloaded", info => { updateReady = info.version; push(); setTimeout(() => { app.isQuitting = true; autoUpdater.quitAndInstall(true, true); }, 4000); });
   autoUpdater.on("error", () => {});
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 20000);
