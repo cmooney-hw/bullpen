@@ -206,9 +206,9 @@ html.tv main{flex:1}
 html.tv .tabs>button{display:none}
 .clock{display:none}
 html.tv .clock{display:flex;align-items:baseline;gap:14px;font-variant-numeric:tabular-nums}
-html.tv .clock .tm{font-family:var(--f-mono);font-size:26px;font-weight:600;color:var(--fg);letter-spacing:.02em;line-height:1}
-html.tv .clock .tm small{font-size:14px;color:var(--muted);margin-left:5px;font-weight:500}
-html.tv .clock .dt{font-size:14px;color:var(--muted);font-weight:500}
+html.tv .clock .tm{font-family:var(--f-mono);font-size:44px;font-weight:600;color:var(--fg);letter-spacing:.02em;line-height:1}
+html.tv .clock .tm small{font-size:20px;color:var(--muted);margin-left:6px;font-weight:500}
+html.tv .clock .dt{font-size:22px;color:var(--muted);font-weight:500}
 html.tv main{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:22px;padding:22px 24px;align-items:start;min-height:0;overflow:hidden}
 html.tv .pane{max-height:100%;overflow:hidden}
 html.tv .pane{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -229,6 +229,10 @@ html.tv .chip{font-size:13px}
 html.tv .lbrow .nm{font-size:18px}html.tv .lbrow .small{font-size:14px}
 html.tv .lbcalls b{font-size:30px}html.tv .lbcalls small{font-size:15px}
 html.tv .lbrow .rank{font-size:24px}
+html.tv .lbrow{padding:9px 14px}
+html.tv .lb{margin-bottom:4px}
+html.tv .lbfilter{padding:0 2px 4px}
+html.tv .pane .pb>.team>.k{margin-top:2px}
 html.tv .camps{font-size:14px}html.tv .camps .cn{font-size:16px}html.tv .camps b{font-size:18px}
 .lb{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px}
 .lbrow{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line-soft)}
@@ -337,6 +341,11 @@ html.tv .cele .arena .wall{width:70px}
     <button class="opt" data-t="clear" role="radio" aria-checked="false"><span class="sw clear"></span>Clear glass<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Manager</div>
     <button class="opt" id="optMgr" role="switch" aria-checked="true">Show manager stats<span class="chk">✓</span></button>
+    <div class="k" style="margin-top:8px">Full screen</div>
+    <button class="opt" data-pane="team" role="switch" aria-checked="true">Team<span class="chk">✓</span></button>
+    <button class="opt" data-pane="camps" role="switch" aria-checked="true">Active Campaigns<span class="chk">✓</span></button>
+    <button class="opt" data-pane="board" role="switch" aria-checked="true">Leaderboard<span class="chk">✓</span></button>
+    <button class="opt" data-pane="chart" role="switch" aria-checked="true">Chart<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Meeting set</div>
     <button class="opt" id="optSound" role="switch" aria-checked="true">Play a chime<span class="chk">✓</span></button>
     <button class="opt" id="optFlash" role="switch" aria-checked="true">Flash the rep's card<span class="chk">✓</span></button>
@@ -381,6 +390,16 @@ let showMgr = true; try{ showMgr = localStorage.getItem("showMgr") !== "0"; }cat
 function applyMgr(rerender){ $("optMgr").setAttribute("aria-checked", String(showMgr)); try{ localStorage.setItem("showMgr", showMgr ? "1" : "0"); }catch(_){} if (rerender && last) render(last); }
 $("optMgr").onclick = e => { e.stopPropagation(); showMgr = !showMgr; applyMgr(true); };
 applyMgr(false);
+// Which panes show in full screen
+let tvPanes = { team: true, camps: true, board: true, chart: true };
+try{ Object.assign(tvPanes, JSON.parse(localStorage.getItem("tvPanes") || "{}")); }catch(_){}
+function applyPanes(rerender){
+  for (const o of document.querySelectorAll(".opt[data-pane]")) o.setAttribute("aria-checked", String(!!tvPanes[o.dataset.pane]));
+  try{ localStorage.setItem("tvPanes", JSON.stringify(tvPanes)); }catch(_){}
+  if (rerender){ const m = $("main"); m.replaceChildren(); delete m.dataset.panes; tvShrink = 1; fitTv(); if (last) render(last); }
+}
+for (const o of document.querySelectorAll(".opt[data-pane]")) o.onclick = e => { e.stopPropagation(); tvPanes[o.dataset.pane] = !tvPanes[o.dataset.pane]; if (!tvPanes.team && !tvPanes.camps && !tvPanes.board) tvPanes.team = true; applyPanes(true); };
+applyPanes(false);
 // Meeting-set celebration settings
 const cel = { sound: true, flash: true };
 try{ cel.sound = localStorage.getItem("celSound") !== "0"; cel.flash = localStorage.getItem("celFlash") !== "0"; }catch(_){}
@@ -412,10 +431,11 @@ document.addEventListener("keydown", e => { if (e.key==="Escape" && !pop.hidden)
 
 /* ---- TV mode ---- */
 let tv = false;
+let tvShrink = 1; // extra scale-down when the panes don't fit the screen
 function fitTv(){
   const b = document.body.style;
   if (!tv){ b.zoom = ""; b.width = ""; b.height = ""; return; }
-  const z = Math.max(1, Math.min(innerWidth / 1380, innerHeight / 880));
+  const z = Math.max(1, Math.min(innerWidth / 1380, innerHeight / 880)) * tvShrink;
   b.zoom = z.toFixed(3);
   // size the page to exactly the zoomed display so nothing (settings menu, banners) hangs off the edge
   b.width = Math.floor(innerWidth / z) + "px";
@@ -431,7 +451,18 @@ board.onTv(on => {
   fitTv();
   if (last) render(last);
 });
-addEventListener("resize", fitTv);
+addEventListener("resize", () => { tvShrink = 1; fitTv(); fitPanes(); });
+// After each render in full screen: if any pane overflows, scale the whole page down just enough to fit
+function fitPanes(){
+  if (!tv) return;
+  const panes = [...document.querySelectorAll("#main .pane")]; if (!panes.length) return;
+  const over = Math.max(1, ...panes.map(p => p.scrollHeight / Math.max(1, p.clientHeight)));
+  if (over > 1.01 && tvShrink > 0.6){ tvShrink = Math.max(0.6, tvShrink / over * 0.995); fitTv(); requestAnimationFrame(fitPanes); }
+  else if (over <= 1 && tvShrink < 1){ // try growing back a little when there's room (e.g. a pane was hidden)
+    const slack = Math.min(...panes.map(p => p.clientHeight / Math.max(1, p.scrollHeight)));
+    if (slack > 1.08){ tvShrink = Math.min(1, tvShrink * Math.min(slack, 1.05)); fitTv(); requestAnimationFrame(fitPanes); }
+  }
+}
 // Full-screen clock in place of the tabs
 const clockTm = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit"});
 const clockDt = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"long",month:"long",day:"numeric"});
@@ -624,18 +655,22 @@ function render(s){
     const b=el("button","link","Connect JustCall"); b.onclick=()=>board.openSetup(); m.append(document.createElement("br"), b); return;
   }
   if (tv){
-    if (!main.querySelector(".pane")){
-      main.replaceChildren();
-      for (const t of ["Team","Active Campaigns","Leaderboard"]){ const pane = el("div","pane"); pane.append(el("div","ph",t), el("div","pb")); main.append(pane); }
+    const want = [["team","Team",renderTeam],["camps","Active Campaigns",renderCampaigns],["board","Leaderboard",renderLeaderboard]].filter(w => tvPanes[w[0]]);
+    const key = want.map(w=>w[0]).join(",");
+    if (main.dataset.panes !== key){
+      main.replaceChildren(); main.dataset.panes = key;
+      for (const w of want){ const pane = el("div","pane"); pane.dataset.pane = w[0]; pane.append(el("div","ph",w[1]), el("div","pb")); main.append(pane); }
+      main.style.gridTemplateColumns = want.map(w => w[0]==="team" ? "1.25fr" : "1fr").join(" ");
     }
-    const pb = main.querySelectorAll(".pane .pb");
-    renderTeam(s, pb[0]); renderCampaigns(s, pb[1]); renderLeaderboard(s, pb[2]);
-    // one line per rep, full width under the three panes
+    for (const w of want) w[2](s, main.querySelector('.pane[data-pane="' + w[0] + '"] .pb'));
+    // one line per rep, full width under the panes
     main.querySelector(".trend")?.remove();
     const sum = period==="week" ? s.week : s.today;
-    if (sum) main.append(trendChart(sum, period==="week"));
+    if (sum && tvPanes.chart) main.append(trendChart(sum, period==="week"));
+    requestAnimationFrame(fitPanes);
     return;
   }
+  if (main.dataset.panes){ main.replaceChildren(); delete main.dataset.panes; main.style.gridTemplateColumns = ""; }
   if (main.querySelector(".pane")) main.replaceChildren();
   if (view==="camps"){ renderCampaigns(s); return; }
   if (view==="board"){ renderLeaderboard(s); return; }

@@ -85,7 +85,9 @@ function rollDay() {
   const day = etYMD(new Date()), monday = mondayOf(day);
   if (feed.day === day) return;
   if (feed.week !== monday) { feed.calls = new Map(); notified.clear(); feed.ready = false; backfill.page = 1; backfill.done = false; }
+  const fresh = feed.week !== monday;
   feed.day = day; feed.week = monday;
+  if (fresh && loadCache()) push();
 }
 
 /* ---- meeting pop-ups ---- */
@@ -126,7 +128,7 @@ async function pollNewest(creds) {
       const prev = feed.calls.get(f.id);
       if (prev) overlap = true;
       if (f.ymd < feed.week) { older = true; continue; }
-      feed.calls.set(f.id, f); // also picks up dispositions and notes logged after the call
+      feed.calls.set(f.id, f); cacheDirty = true; // also picks up dispositions and notes logged after the call
       trackCampaignCall(f);
       maybeNotify(f, prev);
     }
@@ -179,13 +181,14 @@ async function loadCampaignPage(creds) {
   const rows = await getCalls(creds, { campaign_id: c.id, from_datetime: c.created > cutoff ? c.created : cutoff, to_datetime: today + " 23:59:59", per_page: 100, page: c.page, sort: "id", order: "asc" });
   for (const r of rows) { const f = rowFacts(r); if (REP_IDS.has(f.agent)) c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested }); }
   if (rows.length < 100) c.loaded = true; else c.page++;
+  cacheDirty = true;
   push();
   return true;
 }
 function trackCampaignCall(f) {
   const c = f.campaignId != null && camps.byId.get(f.campaignId);
   if (f.campaignId != null && !c && REP_IDS.has(f.agent) && camps.listedAt) camps.relist = true; // new campaign started: pick it up
-  if (c && REP_IDS.has(f.agent)) c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested });
+  if (c && REP_IDS.has(f.agent)) { c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested }); cacheDirty = true; }
 }
 function campaignSummary() {
   // Which campaigns the team actually dialed today / this week (from the live week of calls)
@@ -208,6 +211,38 @@ function campaignSummary() {
 
 /* ---- background loader: fills in the rest of the week, a page every 3 seconds, picks up where it left off ---- */
 const backfill = { page: 1, done: false, running: false };
+
+/* ---- disk cache: the week's calls and campaign history survive restarts (updates restart the app) ---- */
+const cacheFile = () => path.join(dataDir(), "week-cache.json");
+let cacheDirty = false, lastCacheWrite = 0;
+function saveCache(force) {
+  if (!feed.week || (!cacheDirty && !force)) return;
+  if (!force && Date.now() - lastCacheWrite < 20000) return;
+  try {
+    const data = { v: 1, week: feed.week, savedAt: Date.now(), backfillDone: backfill.done,
+      calls: [...feed.calls.values()],
+      camps: [...camps.byId.values()].map(c => ({ id: c.id, name: c.name, status: c.status, created: c.created, contacts: c.contacts, page: c.page, loaded: c.loaded, calls: [...c.calls.entries()] })),
+      campsListedAt: camps.listedAt };
+    fs.mkdirSync(dataDir(), { recursive: true });
+    fs.writeFileSync(cacheFile() + ".tmp", JSON.stringify(data)); fs.renameSync(cacheFile() + ".tmp", cacheFile());
+    cacheDirty = false; lastCacheWrite = Date.now();
+  } catch (_) {}
+}
+function loadCache() {
+  try {
+    const d = JSON.parse(fs.readFileSync(cacheFile(), "utf8"));
+    if (!d || d.v !== 1 || d.week !== feed.week) return false;
+    for (const f of d.calls || []) feed.calls.set(f.id, f);
+    for (const c of d.camps || []) camps.byId.set(c.id, Object.assign({}, c, { calls: new Map(c.calls || []) }));
+    camps.listedAt = d.campsListedAt || 0;
+    // numbers show right away; the loader still walks back until it meets calls it already has
+    feed.ready = feed.calls.size > 0;
+    backfill.page = 1; backfill.done = false;
+    return true;
+  } catch (_) { return false; }
+}
+setInterval(() => saveCache(false), 20000);
+app.on("before-quit", () => saveCache(true));
 async function runBackfill() {
   if (backfill.running) return;
   backfill.running = true;
@@ -221,9 +256,11 @@ async function runBackfill() {
       if (!backfill.done) {
         const rows = await getCalls(creds, Object.assign(range(feed.day), { per_page: 100, page: backfill.page, sort: "id", order: "desc" }));
         let older = false;
-        for (const r of rows) { const f = rowFacts(r); if (f.ymd >= feed.week) { if (!feed.calls.has(f.id)) feed.calls.set(f.id, f); } else older = true; }
+        let known = 0;
+        for (const r of rows) { const f = rowFacts(r); if (f.ymd >= feed.week) { if (!feed.calls.has(f.id)) { feed.calls.set(f.id, f); cacheDirty = true; } else known++; } else older = true; }
         push();
-        if (rows.length < 100 || older || backfill.page >= 150) { backfill.done = true; feed.ready = true; push(); }
+        // done when we run out, reach last week, or a whole page is calls the cache already had
+        if (rows.length < 100 || older || backfill.page >= 150 || (rows.length && known === rows.length)) { backfill.done = true; feed.ready = true; push(); saveCache(true); }
         else backfill.page++;
       } else if (Date.now() - camps.listedAt > 10 * 60000 || camps.relist) {
         camps.relist = false;
