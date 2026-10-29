@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld("board", {
   dragMove: () => ipcRenderer.send("drag-move"),
   dragEnd: () => ipcRenderer.send("drag-end"),
   onTv: cb => ipcRenderer.on("tv", (_e, on) => cb(on)),
+  testAlert: () => ipcRenderer.send("test-alert"),
   recapOpened: () => ipcRenderer.send("recap-opened"),
   onTick: cb => ipcRenderer.on("tick", (_e, t) => cb(t)),
   onAlert: cb => ipcRenderer.on("alert", (_e, a) => cb(a)),

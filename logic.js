@@ -56,11 +56,12 @@ function summarize(calls, start, end) {
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
-  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {} };
+  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {} };
   for (const c of calls.values()) {
     if (c.ymd < start || c.ymd > end || !per[c.agent]) continue;
     const p = per[c.agent];
     p.calls++;
+    p.byDay[c.ymd] = (p.byDay[c.ymd] || 0) + 1;
     if (c.interested) p.interested++;
     if (c.notInterested) p.notInterested++;
     if (c.interested || c.notInterested) {
@@ -79,9 +80,11 @@ function summarize(calls, start, end) {
     team.calls += p.calls; team.goal += GOAL * days;
     team.interested += p.interested; team.notInterested += p.notInterested; team.human += p.human;
   }
+  // Mon..Fri of the period's week, for the per-day bars (only meaningful for a week period)
+  const weekDays = []; for (let i = 0; i < 5; i++) weekDays.push(addDays(mondayOf(start), i));
   return {
-    start, end, days, team,
-    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps) }))
+    start, end, days, team, weekDays,
+    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps), daily: weekDays.map(d => per[r.id].byDay[d] || 0) }))
   };
 }
 

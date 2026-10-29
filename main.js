@@ -8,7 +8,7 @@ let autoUpdater = null; try { autoUpdater = require("electron-updater").autoUpda
 const BOARD_URL = "https://claude.ai/artifact/6Jd2KCKpXAcM4nqeizhzGt";
 const API = process.env.CALLBOARD_TEST_API || "https://api.justcall.io/v2.1/sales_dialer/calls";
 const CAMPAIGNS_API = process.env.CALLBOARD_TEST_API ? process.env.CALLBOARD_TEST_API.replace(/calls$/, "campaigns") : "https://api.justcall.io/v2.1/sales_dialer/campaigns";
-const POLL_MS = 5000;          // one request every 5 seconds = about 720 an hour (Pro plan allows 3,600)
+const POLL_MS = 3000;          // one request every 3 seconds = about 1,200 an hour, plus backfill pages (Pro plan allows 3,600)
 const BACKOFF_MS = 60000;      // if JustCall says "slow down", wait a minute between requests for 5 minutes
 const OFFLINE_RETRY_MS = 15000;
 
@@ -107,7 +107,7 @@ function notifyMeeting(f) {
   // Also show it inside the widget, so it's seen even if Windows hides pop-ups (Focus, Do Not Disturb)
   if (widget && !widget.isDestroyed()) {
     if (!widget.isVisible()) widget.showInactive();
-    widget.webContents.send("alert", { title, body, at: Date.now() });
+    widget.webContents.send("alert", { title, body, at: Date.now(), agent: f.agent, test: String(f.id).startsWith("test-") });
   }
 }
 function maybeNotify(f, prev) {
@@ -415,6 +415,7 @@ function applyMaterial() {
   try { widget.setBackgroundMaterial(theme === "original" || tvOn || !acrylicOk() ? "none" : "acrylic"); } catch (_) {}
 }
 ipcMain.on("set-theme", (_e, t) => { theme = t; applyMaterial(); });
+ipcMain.on("test-alert", () => { const r = REPS[Math.floor(Math.random() * 3)]; notifyMeeting({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." }); });
 ipcMain.on("recap-opened", () => { if (widget && !widget.isDestroyed()) { widget.show(); widget.moveTop(); } });
 ipcMain.on("refresh-now", () => { if (!running) { clearTimeout(timer); tick(); } });
 ipcMain.handle("save-creds", async (_e, c) => {
