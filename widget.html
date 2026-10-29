@@ -118,9 +118,9 @@ main{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:
 .line2 .bar{flex:1;height:4px}
 .nums{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .nums b{color:var(--fg);font-weight:500;font-size:13px}
-.ph{width:12px;height:12px;vertical-align:-1px;margin-right:4px;color:var(--muted)}
-.big .ph{width:16px;height:16px;vertical-align:1px;margin-right:6px}
-html.tv .big .ph{width:22px;height:22px}
+.phi{width:12px;height:12px;vertical-align:-1px;margin-right:4px;color:var(--muted)}
+.big .phi{width:16px;height:16px;vertical-align:1px;margin-right:6px}
+html.tv .big .phi{width:22px;height:22px}
 .calls-lbl{font-family:var(--f-sans,inherit);font-size:11px;color:var(--faint);margin-left:6px;letter-spacing:.04em;text-transform:uppercase}
 html.tv .calls-lbl{font-size:13px}
 .line3{grid-column:2/4;display:flex;gap:12px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -313,7 +313,7 @@ html.tv .cele .arena .wall{width:70px}
   <div class="cele" id="cele" hidden role="dialog" aria-label="Meeting set"></div>
 <script>
 const $ = id => document.getElementById(id);
-const PHONE_SVG = '<svg class="ph" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1z"/></svg>';
+const PHONE_SVG = '<svg class="phi" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1z"/></svg>';
 function makeRig(){ const r=document.createElement("div"); r.className="rig run";
   const img=(n)=>{ const i=document.createElement("img"); i.src="rig-"+n+".png"; i.alt=""; i.draggable=false; return i; };
   const leg=(n)=>{ const l=document.createElement("div"); l.className="leg "+n; l.append(img(n+"-upper")); const lo=document.createElement("div"); lo.className="lower"; lo.append(img(n+"-lower")); l.append(lo); return l; };
