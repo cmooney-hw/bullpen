@@ -391,6 +391,21 @@ function setTv(on) {
   widget.webContents.send("tv", tvOn);
 }
 ipcMain.on("set-tv", (_e, on) => setTv(!!on));
+// Dragging the title bar in TV mode: drop back to the small window and carry it under the cursor
+let grab = null;
+ipcMain.on("tv-drag-start", (_e, { fx, fy }) => {
+  if (!widget || widget.isDestroyed()) return;
+  setTv(false);
+  const b = widget.getBounds(), c = screen.getCursorScreenPoint();
+  grab = { x: Math.round(Math.min(Math.max(fx, 0), 1) * b.width), y: Math.round(Math.min(Math.max(fy, 0), 1) * 44) };
+  widget.setPosition(c.x - grab.x, c.y - grab.y);
+});
+ipcMain.on("drag-move", () => {
+  if (!grab || !widget || widget.isDestroyed()) return;
+  const c = screen.getCursorScreenPoint();
+  widget.setPosition(c.x - grab.x, c.y - grab.y);
+});
+ipcMain.on("drag-end", () => { grab = null; if (widget && !widget.isDestroyed()) saveBounds(); });
 ipcMain.on("set-theme", (_e, t) => {
   if (!widget || widget.isDestroyed()) return;
   try { widget.setBackgroundMaterial(t === "original" || !acrylicOk() ? "none" : "acrylic"); } catch (_) {}

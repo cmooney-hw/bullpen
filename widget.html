@@ -138,6 +138,7 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 .camp .n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 /* ---- TV mode: full screen, all three sections side by side, scaled to the screen ---- */
 html.tv body{border:0;border-radius:0;height:100vh}
+html.tv .bar-top{-webkit-app-region:no-drag;cursor:grab}
 html.tv main{flex:1}
 html.tv .tabs>button{display:none}
 html.tv .tabs::before{content:"Team · Active Campaigns · Leaderboard";font-size:13px;font-weight:600;color:var(--muted)}
@@ -282,6 +283,26 @@ board.onTv(on => {
   if (last) render(last);
 });
 addEventListener("resize", fitTv);
+// In TV mode, grabbing the title bar pulls the widget back down to its small size under the cursor, like dragging a maximized browser window
+(function(){
+  const bar = document.querySelector(".bar-top");
+  let start = null, dragging = false;
+  bar.addEventListener("pointerdown", e => {
+    if (!tv || e.button !== 0 || e.target.closest("button")) return;
+    start = { x: e.clientX, y: e.clientY }; dragging = false;
+    bar.setPointerCapture(e.pointerId);
+  });
+  addEventListener("pointermove", e => {
+    if (!start) return;
+    if (!dragging){
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+      dragging = true;
+      board.tvDragStart(e.clientX / innerWidth, e.clientY / innerHeight);
+    } else board.dragMove();
+  });
+  const end = () => { if (dragging) board.dragEnd(); start = null; dragging = false; };
+  addEventListener("pointerup", end); addEventListener("pointercancel", end);
+})();
 $("btnTv").onclick = () => board.setTv(!tv);
 document.addEventListener("keydown", e => { if (e.key==="F11"){ e.preventDefault(); board.setTv(!tv); } if (e.key==="Escape" && tv && $("recap").hidden && pop.hidden) board.setTv(false); });
 try{ if (localStorage.getItem("tv")==="1") board.setTv(true); }catch(_){}
