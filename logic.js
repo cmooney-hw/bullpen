@@ -46,7 +46,7 @@ function rowFacts(r) {
     campaign: decode(r.campaign && r.campaign.name),
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
-    interested: INTERESTED.has(dl) || (!isNI && MEETING_NOTE_RE.test(note)),
+    interested: INTERESTED.has(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
     human: longEnough && HUMAN.has(dl),
     notInterested: isNI && !DNC_RE.test(note)
   };
