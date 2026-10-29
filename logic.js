@@ -57,12 +57,9 @@ const dow = ymd => new Date(ymd + "T12:00:00Z").getUTCDay();
 const mondayOf = ymd => addDays(ymd, -((dow(ymd) + 6) % 7));
 function workdaysBetween(start, end) { let n = 0; for (let d = start; d <= end; d = addDays(d, 1)) if (dow(d) >= 1 && dow(d) <= 5) n++; return Math.max(n, 1); }
 
-// JustCall keeps revising a call's pickup type and duration for a short while after it ends;
-// only count a connect once the record is this old, so the rate never flickers
-const SETTLE_MS = 60000;
 // calls: Map id -> facts. Numbers for the ET days start..end (inclusive).
+// (JustCall writes a call record only after the call ends, with its final pickup type and duration, so no settling delay is needed)
 function summarize(calls, start, end) {
-  const now = Date.now();
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
@@ -80,7 +77,7 @@ function summarize(calls, start, end) {
     cc.calls++;
     if (c.interested) cc.interested++;
     if (c.notInterested) cc.notInterested++;
-    if (c.human && (c.interested || c.notInterested || now - c.ts >= SETTLE_MS)) { p.human++; cc.human++; }
+    if (c.human) { p.human++; cc.human++; }
     if (c.ts > p.lastCallTs) p.lastCallTs = c.ts;
   }
   const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, human: 0 };
