@@ -62,14 +62,30 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13
 .date{color:var(--muted);font-size:12px;margin-left:2px}
 .sp{flex:1}
 /* The bull trots back and forth across the title bar */
-.track{flex:1;position:relative;height:22px;margin:0 8px;pointer-events:none;overflow:hidden}
-.bull{position:absolute;top:-4px;left:0;width:50px;height:28px;transition:left 4.6s linear}
-.bull img{display:block;width:50px;height:28px;object-fit:contain}
-.bull.back svg{transform:scaleX(-1)}
+.track{flex:1;position:relative;height:28px;margin:0 8px;pointer-events:none;overflow:hidden}
+.bull{position:absolute;top:0;left:0;width:50px;height:28px;transition:left 4.6s linear}
+.bull .rigbox{display:block;position:relative;width:50px;height:28px}
+/* layered bull: body + four legs (thigh + lower leg) cut from the clipart; hips and knees swing */
+.rig{position:absolute;left:0;top:0;width:453px;height:257px;transform-origin:0 0;transform:scale(var(--s,1))}
+.rig img,.rig .leg,.rig .lower{position:absolute;display:block;max-width:none}
+.rig .body{left:0;top:0}
+.rig .far-hind{left:28px;top:140px;width:49px;height:72px;transform-origin:50% 8px}
+.rig .far-hind .lower{left:-2px;top:58px;transform-origin:50% 7px}
+.rig .far-front{left:210px;top:146px;width:52px;height:64px;transform-origin:50% 8px}
+.rig .far-front .lower{left:0px;top:50px;transform-origin:50% 7px}
+.rig .near-hind{left:56px;top:138px;width:77px;height:74px;transform-origin:50% 8px}
+.rig .near-hind .lower{left:36px;top:60px;transform-origin:50% 7px}
+.rig .near-front{left:262px;top:140px;width:69px;height:67px;transform-origin:50% 8px}
+.rig .near-front .lower{left:24px;top:53px;transform-origin:50% 7px}
+.rig.run .near-front,.rig.run .far-hind{animation:hip .38s ease-in-out infinite alternate}
+.rig.run .near-hind,.rig.run .far-front{animation:hip .38s ease-in-out infinite alternate-reverse}
+.rig.run .near-front .lower,.rig.run .far-hind .lower{animation:knee .38s ease-in-out infinite alternate;animation-delay:-.12s}
+.rig.run .near-hind .lower,.rig.run .far-front .lower{animation:knee .38s ease-in-out infinite alternate-reverse;animation-delay:-.12s}
+@keyframes hip{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+@keyframes knee{from{transform:rotate(-6deg)}to{transform:rotate(22deg)}}
+@media (prefers-reduced-motion:reduce){.rig .leg,.rig .lower{animation:none!important}}
+.bull.back .rigbox{transform:scaleX(-1)}
 .bull .bob{display:block;animation:bob .38s ease-in-out infinite alternate}
-.bull .near-front,.bull .far-hind,.bull .near-hind,.bull .far-front{transform-box:fill-box;transform-origin:50% 0}
-.bull .near-front,.bull .far-hind{animation:gallop .38s ease-in-out infinite alternate}
-.bull .near-hind,.bull .far-front{animation:gallop .38s ease-in-out infinite alternate-reverse}
 @keyframes gallop{from{transform:rotate(-10deg)}to{transform:rotate(10deg)}}
 @keyframes bob{from{transform:translateY(0)}to{transform:translateY(-1px)}}
 @media (prefers-reduced-motion:reduce){.bull{transition:none}.bull .bob,.bull g{animation:none}}
@@ -214,7 +230,7 @@ html.tv .cele .arena .wall{width:70px}
 .wall i:nth-child(odd){background:#c96a4c}
 @keyframes brick{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
 .runner{position:absolute;left:0;top:50%;width:56px;height:36px;margin-top:-18px;animation:charge 1.35s cubic-bezier(.5,0,.9,.4) forwards, through .5s ease-out 1.35s forwards}
-.runner img{width:56px;height:36px;display:block;object-fit:contain;animation:gallop .22s ease-in-out infinite}
+.runner .rig{animation:none}
 @keyframes charge{from{left:-60px}to{left:calc(100% - 70px)}}
 @keyframes through{from{left:calc(100% - 70px)}to{left:calc(100% - 46px)}}
 @keyframes gallop{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
@@ -253,7 +269,7 @@ html.tv .cele .arena .wall{width:70px}
   <div class="bar-top">
     <span class="dot" id="dot"></span>
     <span class="ttl">Bullpen</span>
-    <span class="track" aria-hidden="true"><span class="bull"><span class="bob"><img src="bull.png" alt="" width="50" height="28" draggable="false"></span></span></span>
+    <span class="track" aria-hidden="true"><span class="bull"><span class="bob"><span class="rigbox"></span></span></span></span>
     <button class="ib" id="btnRefresh" title="Refresh now" aria-label="Refresh now">↻</button>
     <button class="ib" id="btnBoard" title="Open full board" aria-label="Open full board">↗</button>
     <button class="ib" id="btnTv" title="TV mode (full screen)" aria-label="TV mode" aria-pressed="false">⛶</button>
@@ -287,6 +303,12 @@ html.tv .cele .arena .wall{width:70px}
   <div class="cele" id="cele" hidden role="dialog" aria-label="Meeting set"></div>
 <script>
 const $ = id => document.getElementById(id);
+function makeRig(){ const r=document.createElement("div"); r.className="rig run";
+  const img=(n)=>{ const i=document.createElement("img"); i.src="rig-"+n+".png"; i.alt=""; i.draggable=false; return i; };
+  const leg=(n)=>{ const l=document.createElement("div"); l.className="leg "+n; l.append(img(n+"-upper")); const lo=document.createElement("div"); lo.className="lower"; lo.append(img(n+"-lower")); l.append(lo); return l; };
+  r.append(leg("far-hind"), leg("far-front")); const b=img("body"); b.className="body"; r.append(b); r.append(leg("near-hind"), leg("near-front")); return r; }
+function fitRig(host){ const r=host.querySelector(".rig"); if (r) r.style.setProperty("--s", (host.clientWidth/453).toFixed(4)); }
+{ const box = document.querySelector(".bull .rigbox"); if (box){ box.append(makeRig()); fitRig(box); } }
 const fmt = n => Number(n||0).toLocaleString("en-US");
 const initials = n => n.split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
@@ -752,10 +774,9 @@ function bullStage(){
     p.style.setProperty("--dx", (Math.cos(ang) * 50) + "px"); p.style.setProperty("--dy", (Math.sin(ang) * 40) + "px");
     stage.append(p);
   }
-  const runner = el("div","runner");
-  const src = document.querySelector(".track .bull img");
-  if (src) runner.append(src.cloneNode(true));
+  const runner = el("div","runner"); runner.append(makeRig());
   stage.append(wall, runner);
+  requestAnimationFrame(() => fitRig(runner));
   // the whole banner jolts on impact
   stage.classList.add("shake");
   return stage;
@@ -768,7 +789,7 @@ board.onTick(t => {
   bullDir = bullDir ? 0 : 1;
   b.style.transitionDuration = Math.max(1, ((t && t.next) || 5000) - 400) + "ms";
   b.classList.toggle("back", bullDir === 0);
-  b.style.left = bullDir ? "calc(100% - 44px)" : "0px";
+  b.style.left = bullDir ? "calc(100% - 50px)" : "0px";
 });
 $("btnUpdate").onclick = () => board.installUpdate();
 board.onState(s => { $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
