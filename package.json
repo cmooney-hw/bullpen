@@ -1,7 +1,7 @@
 {
   "name": "bullpen-widget",
   "productName": "Bullpen",
-  "version": "2.8.4",
+  "version": "2.8.5",
   "description": "Bullpen: desktop widget with today's JustCall Sales Dialer numbers for the Highwater team",
   "main": "main.js",
   "author": "Highwater",
