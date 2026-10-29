@@ -9,8 +9,10 @@ const REPS = [
 const INTERESTED = new Set(["interested", "meeting set"]);
 // Reps sometimes log a booked meeting as "Other - See Notes" with "Meeting Set" in the note
 const MEETING_NOTE_RE = /(meeting\s*(set|scheduled|booked)|(set|scheduled|booked)\s+(a\s+)?(meeting|demo|appointment)|appointment\s*(set|scheduled|booked))/i;
-// Human connection: one of these outcomes, or any call where the rep typed a note (same rule as the web board)
-const HUMAN = new Set(["interested","meeting set","not interested","other - see notes","product/service not needed","out of area (+100 miles)","no longer at company"]);
+// Human connection: JustCall heard a person pick up and the call lasted at least a few seconds,
+// or the rep logged an outcome that can only come from talking to someone
+const HUMAN = new Set(["interested","meeting set","not interested"]);
+const MIN_CONNECT_SECS = 5;
 const DNC_RE = /(do\s*not\s*call|don'?t\s*call|\bdnc\b|remove (me|him|her|them|us)? ?from|take (me|him|her|them|us) off)/i;
 
 const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#039;": "'", "&#39;": "'", "&apos;": "'", "&nbsp;": " " };
@@ -34,6 +36,7 @@ function rowFacts(r) {
   const note = decode(ci.notes);
   const dl = disp.toLowerCase();
   const isNI = dl === "not interested";
+  const pickedUp = String(ci.call_answered_by || "").toLowerCase() === "human pickup" && Number(ci.duration || 0) >= MIN_CONNECT_SECS;
   return {
     id: r.call_id,
     agent: Number(r.agent_id),
@@ -45,7 +48,7 @@ function rowFacts(r) {
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
     interested: INTERESTED.has(dl) || (!isNI && MEETING_NOTE_RE.test(note)),
-    human: HUMAN.has(dl) || dl.startsWith("out of area") || !!note,
+    human: pickedUp || HUMAN.has(dl) || (!isNI && MEETING_NOTE_RE.test(note)),
     notInterested: isNI && !DNC_RE.test(note)
   };
 }
