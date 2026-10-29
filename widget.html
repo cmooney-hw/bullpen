@@ -161,6 +161,19 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 html.tv .rep.cheer{animation-iteration-count:6}
 @media (prefers-reduced-motion:reduce){.rep.cheer{animation:none;background:rgba(70,192,138,.22)}}
 .opt.btn{justify-content:center;color:var(--accent)}
+/* ticker under the title bar */
+.ticker{display:flex;align-items:center;gap:10px;height:26px;padding:0 14px;border-bottom:1px solid var(--line-soft);background:rgba(70,192,138,.06);overflow:hidden;font-size:12px;color:var(--muted);white-space:nowrap}
+.ticker[hidden]{display:none}
+.ticker .lbl{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--good);font-weight:700}
+.ticker .rail{flex:1;overflow:hidden;position:relative;mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+.ticker .run{display:inline-block;padding-left:100%;animation:tick var(--tdur,30s) linear infinite}
+.ticker .run b{color:var(--fg);font-weight:600}
+.ticker .run i{font-style:normal;color:var(--good)}
+.ticker .run .sep{margin:0 14px;color:var(--faint)}
+.ticker .quiet{color:var(--faint)}
+@keyframes tick{to{transform:translateX(-100%)}}
+html.tv .ticker{height:40px;font-size:18px;padding:0 24px}html.tv .ticker .lbl{font-size:13px}
+@media (prefers-reduced-motion:reduce){.ticker .run{animation:none;padding-left:0}}
 .lbfilter{display:flex;align-items:center;gap:10px;padding:4px 2px 8px}
 .lbfilter .k{margin:0}
 .lbfilter .link{font-weight:600}
@@ -329,6 +342,7 @@ html.tv .cele .arena .wall{width:70px}
     <button class="ib" id="btnTheme" title="Look" aria-label="Change the look" aria-haspopup="true" aria-expanded="false">⚙</button>
     <button class="ib" id="btnHide" title="Hide (still runs in the tray)" aria-label="Hide">–</button>
   </div>
+  <div class="ticker" id="ticker" hidden><span class="lbl">Latest</span><div class="rail"><span class="run" id="tickerRun"></span></div></div>
   <nav class="tabs" role="tablist" aria-label="Section">
     <div class="clock" id="clock" aria-live="off"><span class="tm" id="clockTm"></span><span class="dt" id="clockDt"></span></div>
     <button id="vTeam" role="tab" aria-selected="true">Team</button>
@@ -350,6 +364,8 @@ html.tv .cele .arena .wall{width:70px}
     <button class="opt" data-pane="camps" role="switch" aria-checked="true">Active Campaigns<span class="chk">✓</span></button>
     <button class="opt" data-pane="board" role="switch" aria-checked="true">Leaderboard<span class="chk">✓</span></button>
     <button class="opt" data-pane="chart" role="switch" aria-checked="true">Chart<span class="chk">✓</span></button>
+    <div class="k" style="margin-top:8px">Ticker</div>
+    <button class="opt" id="optTicker" role="switch" aria-checked="true">Show latest-activity ticker<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Meeting set</div>
     <button class="opt" id="optSound" role="switch" aria-checked="true">Play a chime<span class="chk">✓</span></button>
     <button class="opt" id="optFlash" role="switch" aria-checked="true">Flash the rep's card<span class="chk">✓</span></button>
@@ -404,6 +420,32 @@ function applyPanes(rerender){
 }
 for (const o of document.querySelectorAll(".opt[data-pane]")) o.onclick = e => { e.stopPropagation(); tvPanes[o.dataset.pane] = !tvPanes[o.dataset.pane]; if (!tvPanes.team && !tvPanes.camps && !tvPanes.board) tvPanes.team = true; applyPanes(true); };
 applyPanes(false);
+// Ticker on/off
+let showTicker = true; try{ showTicker = localStorage.getItem("ticker") !== "0"; }catch(_){}
+function applyTicker(){ $("optTicker").setAttribute("aria-checked", String(showTicker)); try{ localStorage.setItem("ticker", showTicker?"1":"0"); }catch(_){} $("ticker").hidden = !showTicker; }
+$("optTicker").onclick = e => { e.stopPropagation(); showTicker = !showTicker; applyTicker(); };
+applyTicker();
+let tickerKey = "";
+function renderTicker(s){
+  const ev = s.ticker || [];
+  const key = JSON.stringify(ev.map(e => [e.ts, e.kind])) + "|" + (s.today ? s.today.team.calls : 0);
+  if (key === tickerKey) return; tickerKey = key;
+  const run = $("tickerRun"); run.replaceChildren();
+  const tf = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit"});
+  const add = (...nodes) => { if (run.childNodes.length) run.append(el("span","sep","•")); run.append(...nodes); };
+  for (const e of ev){
+    const when = tf.format(new Date(e.ts));
+    if (e.kind === "meeting" || e.kind === "interested") add(el("i",null,"● "), el("b",null, e.kind==="meeting" ? "Meeting set" : "Interested"), document.createTextNode(" · " + e.rep + (e.who ? " · " + e.who : "") + (e.campaign ? " · " + e.campaign : "") + " · " + when));
+    else if (e.kind === "goal") add(el("b",null,e.rep.split(" ")[0]), document.createTextNode(" hit " + fmt(e.n) + " calls at " + when));
+    else if (e.kind === "team") add(el("b",null,"Team"), document.createTextNode(" passed " + fmt(e.n) + " calls at " + when));
+  }
+  if (!ev.length){
+    const t = s.today ? s.today.team : null;
+    add(el("span","quiet", t && t.calls ? "No meetings yet today · team at " + fmt(t.calls) + " calls" : "Quiet so far today"));
+  }
+  // scroll speed scales with length so long feeds don't crawl
+  run.style.setProperty("--tdur", Math.max(18, Math.round(run.textContent.length / 6)) + "s");
+}
 // Meeting-set celebration settings
 const cel = { sound: true, flash: true };
 try{ cel.sound = localStorage.getItem("celSound") !== "0"; cel.flash = localStorage.getItem("celFlash") !== "0"; }catch(_){}
@@ -938,7 +980,7 @@ setInterval(() => {
 }, 900);
 (function puffLoop(){ const b = document.querySelector(".bull"); if (b){ b.classList.remove("puff"); void b.offsetWidth; b.classList.add("puff"); } setTimeout(puffLoop, 6000 + Math.random()*6000); })();
 $("btnUpdate").onclick = () => board.installUpdate();
-board.onState(s => { $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
+board.onState(s => { renderTicker(s); $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
 setInterval(() => { if (last){ render(last); checkRecap(); } }, 30000); // keeps idle timers current and catches 5:30
 </script>
 </body>

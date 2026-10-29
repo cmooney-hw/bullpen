@@ -190,6 +190,31 @@ function trackCampaignCall(f) {
   if (f.campaignId != null && !c && REP_IDS.has(f.agent) && camps.listedAt) camps.relist = true; // new campaign started: pick it up
   if (c && REP_IDS.has(f.agent)) { c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested }); cacheDirty = true; }
 }
+// Ticker: today's meetings/interested calls plus goal milestones, newest first
+function tickerEvents() {
+  if (!feed.day) return [];
+  const ev = [], perRep = {};
+  for (const f of feed.calls.values()) {
+    if (f.ymd !== feed.day || !REP_IDS.has(f.agent)) continue;
+    (perRep[f.agent] || (perRep[f.agent] = [])).push(f.ts);
+    if (f.interested) {
+      const rep = REPS.find(r => r.id === f.agent);
+      ev.push({ ts: f.ts, kind: f.disp.toLowerCase() === "interested" ? "interested" : "meeting", rep: rep ? rep.name : "Rep", who: f.contact, campaign: f.campaign });
+    }
+  }
+  const all = [];
+  for (const [id, list] of Object.entries(perRep)) {
+    list.sort((a, b) => a - b); all.push(...list);
+    const rep = REPS.find(r => r.id === Number(id));
+    if (rep && !rep.manager && list.length >= GOAL) ev.push({ ts: list[GOAL - 1], kind: "goal", rep: rep.name, n: GOAL });
+  }
+  const teamGoal = GOAL * REPS.filter(r => !r.manager).length;
+  const teamList = all.filter((_, i) => true).sort((a, b) => a - b);
+  // team milestone counts only non-manager calls
+  const nm = []; for (const r of REPS) if (!r.manager && perRep[r.id]) nm.push(...perRep[r.id]); nm.sort((a, b) => a - b);
+  if (nm.length >= teamGoal) ev.push({ ts: nm[teamGoal - 1], kind: "team", n: teamGoal });
+  return ev.sort((a, b) => b.ts - a.ts).slice(0, 10);
+}
 function campaignSummary() {
   // Which campaigns the team actually dialed today / this week (from the live week of calls)
   const ranToday = new Set(), ranWeek = new Set(), per = {}, names = {};
@@ -318,7 +343,7 @@ function push() {
   if (!widget || widget.isDestroyed()) return;
   const meetings = feed.day ? [...feed.calls.values()].filter(c => c.ymd === feed.day && c.interested && REP_IDS.has(c.agent))
     .sort((a, b) => a.ts - b.ts).map(c => ({ agent: c.agent, contact: c.contact, campaign: c.campaign, disp: c.disp, note: c.note.slice(0, 160) })) : [];
-  widget.webContents.send("state", { status: feed.status, error: feed.error, updatedAt: feed.updatedAt, weekReady: feed.ready, today, week, meetings, campaigns: campaignSummary(), campaignsListed: camps.listedAt > 0, updateReady, version: app.getVersion() });
+  widget.webContents.send("state", { status: feed.status, error: feed.error, updatedAt: feed.updatedAt, weekReady: feed.ready, today, week, meetings, campaigns: campaignSummary(), campaignsListed: camps.listedAt > 0, updateReady, version: app.getVersion(), ticker: tickerEvents() });
 }
 
 /* ---------------- windows ---------------- */
