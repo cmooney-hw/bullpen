@@ -114,8 +114,8 @@ main{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:
 .team-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .big{font-family:var(--f-mono);font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
 .big .of{font-size:13px;color:var(--muted)}
-.mini{display:flex;gap:10px;flex:none;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
-.mini span{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.mini{display:flex;gap:18px;flex:none;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.mini span{display:flex;flex-direction:column;align-items:center;gap:3px}
 .mini small{white-space:nowrap;font-family:var(--f-body);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .int{color:var(--good)} .nint{color:var(--bad)}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
@@ -218,8 +218,10 @@ html.tv .big{font-size:58px}
 html.tv .big .of{font-size:22px}
 html.tv .calls-lbl{font-size:15px}
 html.tv .big .phi{width:30px;height:30px}
+html.tv .mini{gap:34px}
 html.tv .mini b{font-size:34px}
-html.tv .mini small{font-size:12px}
+html.tv .mini small{font-size:12px;margin-top:2px}
+html.tv .row{margin-bottom:6px}
 html.tv .k{font-size:13px}
 html.tv .rep .nm{font-size:18px}
 html.tv .rep .av{width:40px;height:40px;font-size:14px}
