@@ -189,22 +189,40 @@ html.tv .mini b{font-size:24px}
 .alerts:empty{display:none}
 .alert{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;background:var(--good-soft);border:1px solid rgba(70,192,138,.35);border-radius:8px;padding:9px 10px 9px 12px;animation:pop .35s ease}
 .alert>*{position:relative;z-index:2}
+/* full-window meeting pop-up: dimmed backdrop, card in the middle */
+.cele{position:fixed;inset:0;z-index:40;background:rgba(6,8,14,.82);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.cele .card{position:relative;width:min(92%,520px);background:var(--pop,#1b222a);border:1px solid rgba(70,192,138,.5);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 6px rgba(70,192,138,.12);padding:18px 20px 0;animation:pop .35s ease}
+.cele .card b{display:block;font-size:20px;color:var(--good);margin-bottom:4px;padding-right:30px}
+.cele .card p{margin:0;font-size:14px;color:var(--fg);white-space:pre-wrap}
+.cele .card .x{all:unset;cursor:pointer;position:absolute;top:10px;right:12px;color:var(--muted);font-size:20px;padding:2px 6px}
+.cele .card .x:focus-visible{outline:2px solid var(--accent)}
+.cele .arena{position:relative;height:120px;margin:10px -20px 0;border-top:1px solid var(--line-soft);overflow:hidden;border-radius:0 0 16px 16px;background:rgba(70,192,138,.08)}
+.cele .arena .stage{right:36px;width:70%;max-width:none}
+.cele .arena .wall{width:46px;right:20px;top:10%;bottom:10%}
+.cele .arena .runner{width:92px;height:60px;margin-top:-30px}
+.cele .arena .runner svg{width:92px;height:60px}
+html.tv .cele .card{width:min(80%,900px)}
+html.tv .cele .card b{font-size:34px}html.tv .cele .card p{font-size:20px}
+html.tv .cele .arena{height:200px}
+html.tv .cele .arena .runner{width:150px;height:98px;margin-top:-49px}html.tv .cele .arena .runner svg{width:150px;height:98px}
+html.tv .cele .arena .wall{width:70px}
 /* bull-through-the-wall animation on the right side of the banner */
-.alert .stage{position:absolute;z-index:1;top:0;bottom:0;right:28px;width:46%;max-width:420px;min-width:170px;pointer-events:none}
-.alert .wall{position:absolute;right:18px;top:8%;bottom:8%;width:34px;display:grid;grid-template-rows:repeat(6,1fr);gap:2px}
-.alert .wall i{display:block;background:#b4553a;border-radius:2px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.3);animation:brick 1.1s cubic-bezier(.2,.7,.3,1) 1.35s forwards}
-.alert .wall i:nth-child(odd){background:#c96a4c}
+.stage{position:absolute;z-index:1;top:0;bottom:0;right:28px;width:46%;max-width:420px;min-width:170px;pointer-events:none}
+.wall{position:absolute;right:18px;top:8%;bottom:8%;width:34px;display:grid;grid-template-rows:repeat(6,1fr);gap:2px}
+.wall i{display:block;background:#b4553a;border-radius:2px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.3);animation:brick 1.1s cubic-bezier(.2,.7,.3,1) 1.35s forwards}
+.wall i:nth-child(odd){background:#c96a4c}
 @keyframes brick{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
-.alert .runner{position:absolute;left:0;top:50%;width:56px;height:36px;margin-top:-18px;animation:charge 1.35s cubic-bezier(.5,0,.9,.4) forwards, through .5s ease-out 1.35s forwards}
-.alert .runner svg{width:56px;height:36px;display:block;animation:gallop .22s ease-in-out infinite}
+.runner{position:absolute;left:0;top:50%;width:56px;height:36px;margin-top:-18px;animation:charge 1.35s cubic-bezier(.5,0,.9,.4) forwards, through .5s ease-out 1.35s forwards}
+.runner svg{width:56px;height:36px;display:block;animation:gallop .22s ease-in-out infinite}
 @keyframes charge{from{left:-60px}to{left:calc(100% - 70px)}}
 @keyframes through{from{left:calc(100% - 70px)}to{left:calc(100% - 46px)}}
 @keyframes gallop{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-3px) rotate(3deg)}}
-.alert .shake{animation:shake .4s ease 1.35s}
+.shake{animation:shake .4s ease 1.35s}
 @keyframes shake{0%,100%{transform:none}20%{transform:translate(3px,-2px)}40%{transform:translate(-3px,2px)}60%{transform:translate(2px,1px)}80%{transform:translate(-2px,-1px)}}
-.alert .dust{position:absolute;right:30px;top:50%;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);opacity:0;animation:dust .8s ease-out 1.35s forwards}
+.dust{position:absolute;right:30px;top:50%;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);opacity:0;animation:dust .8s ease-out 1.35s forwards}
 @keyframes dust{0%{opacity:0;transform:scale(.2)}20%{opacity:.8}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(2.2)}}
-@media (prefers-reduced-motion:reduce){.alert .runner,.alert .runner svg,.alert .wall i,.alert .dust,.alert .shake{animation:none}.alert .runner{left:calc(100% - 46px)}}
+@media (prefers-reduced-motion:reduce){.runner,.runner svg,.wall i,.dust,.shake{animation:none}.runner{left:calc(100% - 46px)}}
 .alert b{font-size:13px;color:var(--good)}
 .alert p{grid-column:1/2;margin:0;font-size:12px;color:var(--fg);white-space:pre-wrap;max-height:3.2em;overflow:hidden}
 .alert .x{all:unset;cursor:pointer;grid-row:1/3;grid-column:2;color:var(--muted);font-size:14px;padding:0 4px;align-self:start}
@@ -279,6 +297,7 @@ html.tv .mini b{font-size:24px}
   <main id="main"><div class="msg">Connecting to JustCall…</div></main>
   <footer><span id="status">Starting…</span><button class="link" id="btnUpdate" hidden>Update ready · Restart</button><span><button class="link" id="btnRecap" hidden>Recap</button>&nbsp;&nbsp;<button class="link" id="btnFull">Full board</button></span></footer>
   <div class="recap" id="recap" hidden role="dialog" aria-label="Today's recap"></div>
+  <div class="cele" id="cele" hidden role="dialog" aria-label="Meeting set"></div>
 <script>
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n||0).toLocaleString("en-US");
@@ -723,22 +742,25 @@ $("btnRecap").onclick = showRecap;
 board.onShowRecap(showRecap);
 
 // Meeting / Interested alerts inside the widget: stay for 3 minutes or until dismissed
+let celeTimer = null, celeLoop = null;
+function closeCele(){ clearTimeout(celeTimer); clearInterval(celeLoop); const c = $("cele"); c.hidden = true; c.replaceChildren(); }
 board.onAlert(a => {
   if (cel.sound) chime();
   if (cel.flash) cheer(a.agent);
-  const box = $("alerts");
-  const d = el("div","alert"); d.append(el("b",null,a.title));
-  const x = el("button","x","×"); x.setAttribute("aria-label","Dismiss"); x.onclick = () => d.remove();
-  d.append(x, el("p",null,a.body));
-  let stage = bullStage(); d.append(stage);
-  // the bull rebuilds the wall and charges again every 3 seconds until the banner goes
-  const loop = setInterval(() => { if (!d.isConnected) return clearInterval(loop); stage.remove(); stage = bullStage(); d.append(stage); }, 3000);
-  const gone = () => { clearInterval(loop); d.remove(); };
-  x.onclick = gone;
-  box.prepend(d);
-  while (box.children.length > 3) box.lastChild.remove();
-  setTimeout(gone, 30000); // gone after 30 seconds
+  closeCele();
+  const c = $("cele");
+  const card = el("div","card"); card.append(el("b",null,a.title));
+  const x = el("button","x","×"); x.setAttribute("aria-label","Dismiss"); x.onclick = closeCele;
+  card.append(x, el("p",null,a.body));
+  const arena = el("div","arena"); card.append(arena);
+  let stage = bullStage(); arena.append(stage);
+  // the wall rebuilds and the bull charges again every 3 seconds until the pop-up goes
+  celeLoop = setInterval(() => { stage.remove(); stage = bullStage(); arena.append(stage); }, 3000);
+  c.append(card); c.hidden = false;
+  celeTimer = setTimeout(closeCele, 30000); // gone after 30 seconds
 });
+$("cele").addEventListener("click", e => { if (e.target === $("cele")) closeCele(); });
+document.addEventListener("keydown", e => { if (e.key==="Escape" && !$("cele").hidden) closeCele(); });
 // The bull charges across the banner and smashes through a brick wall
 function bullStage(){
   const stage = el("div","stage");
