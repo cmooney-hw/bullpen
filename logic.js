@@ -23,6 +23,8 @@ function decode(s) {
 
 const etFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
 const etYMD = d => etFmt.format(d);
+const etHourFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false });
+const etHour = d => Number(etHourFmt.format(d).replace(/^24$/, "0"));
 const addDays = (ymd, n) => { const d = new Date(ymd + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 function rowFacts(r) {
@@ -38,6 +40,7 @@ function rowFacts(r) {
     ts: isNaN(when) ? 0 : when.getTime(),
     contact: decode(r.contact_name),
     ymd: isNaN(when) ? String(r.call_user_date || "") : etYMD(when),
+    hour: isNaN(when) ? -1 : etHour(when),
     campaign: decode(r.campaign && r.campaign.name),
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
@@ -56,12 +59,13 @@ function summarize(calls, start, end) {
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
-  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {} };
+  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {}, byHour: {} };
   for (const c of calls.values()) {
     if (c.ymd < start || c.ymd > end || !per[c.agent]) continue;
     const p = per[c.agent];
     p.calls++;
     p.byDay[c.ymd] = (p.byDay[c.ymd] || 0) + 1;
+    if (c.hour >= 0) p.byHour[c.hour] = (p.byHour[c.hour] || 0) + 1;
     if (c.interested) p.interested++;
     if (c.notInterested) p.notInterested++;
     if (c.interested || c.notInterested) {
@@ -84,7 +88,7 @@ function summarize(calls, start, end) {
   const weekDays = []; for (let i = 0; i < 5; i++) weekDays.push(addDays(mondayOf(start), i));
   return {
     start, end, days, team, weekDays,
-    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps), daily: weekDays.map(d => per[r.id].byDay[d] || 0) }))
+    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps), daily: weekDays.map(d => per[r.id].byDay[d] || 0), hourly: Array.from({ length: 24 }, (_, h) => per[r.id].byHour[h] || 0) }))
   };
 }
 

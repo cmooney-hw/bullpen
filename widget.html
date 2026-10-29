@@ -123,16 +123,18 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 @keyframes cheer{0%,100%{background:transparent;box-shadow:none}50%{background:rgba(70,192,138,.28);box-shadow:0 0 0 2px rgba(70,192,138,.55),0 0 24px rgba(70,192,138,.45)}}
 html.tv .rep.cheer{animation-iteration-count:6}
 @media (prefers-reduced-motion:reduce){.rep.cheer{animation:none;background:rgba(70,192,138,.22)}}
-.wk{grid-column:2/4;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
-.wk .d{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--faint)}
-.wk .d .col{width:100%;height:30px;background:var(--surface);border-radius:4px;position:relative;overflow:hidden}
-.wk .d .col i{position:absolute;left:0;right:0;bottom:0;background:var(--accent);border-radius:4px 4px 0 0}
-.wk .d.met .col i{background:var(--good)}
-.wk .d.today{color:var(--fg)}
-.wk .d.today .col{outline:1px solid var(--line)}
-.wk .d b{font-size:10.5px;color:var(--muted);font-weight:600}
-html.tv .wk .d .col{height:44px}html.tv .wk .d{font-size:12px}html.tv .wk .d b{font-size:12.5px}
 .opt.btn{justify-content:center;color:var(--accent)}
+.trend{display:none}
+html.tv .trend{display:block;margin-top:14px;padding:12px 14px 8px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.trend .ph{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;white-space:nowrap}
+.trend .lg{display:flex;gap:16px;font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0}
+.trend .lg i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.trend svg{width:100%;height:150px;display:block;overflow:visible}
+.trend text{fill:var(--faint);font-size:11px;font-family:inherit}
+.trend .grid{stroke:var(--line-soft);stroke-width:1}
+.trend .goal{stroke:var(--good);stroke-width:1;stroke-dasharray:4 4;opacity:.7}
+.trend path.ln{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.trend circle{stroke:var(--bg);stroke-width:1.5}
 .rep.idle .av{border-color:var(--warn);color:var(--warn)}
 .idletag{color:var(--warn);font-weight:600}
 .offtag{color:var(--faint)}
@@ -315,9 +317,13 @@ document.addEventListener("keydown", e => { if (e.key==="Escape" && !pop.hidden)
 /* ---- TV mode ---- */
 let tv = false;
 function fitTv(){
-  if (!tv){ document.body.style.zoom = ""; return; }
+  const b = document.body.style;
+  if (!tv){ b.zoom = ""; b.width = ""; b.height = ""; return; }
   const z = Math.max(1, Math.min(innerWidth / 1380, innerHeight / 760));
-  document.body.style.zoom = z.toFixed(3);
+  b.zoom = z.toFixed(3);
+  // size the page to exactly the zoomed display so nothing (settings menu, banners) hangs off the edge
+  b.width = Math.floor(innerWidth / z) + "px";
+  b.height = Math.floor(innerHeight / z) + "px";
 }
 board.onTv(on => {
   tv = !!on;
@@ -549,19 +555,6 @@ function renderTeam(s, main){
     const z = el("span","conn"); z.append(el("b",null,pct(r.human,r.calls)+"%"), document.createTextNode(" connect"));
     l3.append(x,y,z);
     rep.append(l2, l3);
-    // Week view: a small bar per weekday against the daily goal
-    if (isWeek && !r.manager && r.daily){
-      const wk = el("div","wk"); const names = ["Mon","Tue","Wed","Thu","Fri"];
-      const todayYmd = etToday();
-      r.daily.forEach((n,i) => {
-        const ymd = (sum.weekDays||[])[i];
-        const d = el("div","d" + (n>=GOAL_DAY ? " met" : "") + (ymd===todayYmd ? " today" : ""));
-        const col = el("div","col"); const bar = el("i"); bar.style.height = Math.min(100, pct(n, GOAL_DAY)) + "%"; col.append(bar);
-        d.append(el("b",null, n ? fmt(n) : (ymd && ymd < todayYmd ? "0" : "")), col, el("span",null,names[i]));
-        wk.append(d);
-      });
-      rep.append(wk);
-    }
     if (open && (r.camps||[]).length){
       const key = open==="int" ? "interested" : "notInterested";
       const list = r.camps.filter(c=>c[key]>0).sort((a,b)=>b[key]-a[key]);
@@ -575,6 +568,50 @@ function renderTeam(s, main){
   }
   main.append(reps);
   if (showMgr && mgrBox.children.length){ main.append(el("div","k","Manager")); main.append(mgrBox); }
+}
+
+/* ---- TV mode trend chart: calls per weekday (Week) or per hour (Today), one line per rep ---- */
+const REP_COLORS = ["#6fb4ff","#f2a93b","#e86f9a","#9b8cff"];
+function trendChart(sum, isWeek){
+  const box = el("div","trend");
+  const reps = sum.reps.filter(r => !r.manager);
+  let labels, series, goal, title;
+  if (isWeek){
+    labels = ["Mon","Tue","Wed","Thu","Fri"];
+    const todayYmd = etToday();
+    const upto = Math.max(0, (sum.weekDays||[]).filter(d => d <= todayYmd).length - 1);
+    series = reps.map(r => (r.daily||[]).map((n,i) => i <= upto ? n : null));
+    goal = GOAL_DAY; title = "Calls per day";
+  } else {
+    const hrs = []; for (let h = 8; h <= 18; h++) hrs.push(h);
+    labels = hrs.map(h => (h%12||12) + (h<12?"a":"p"));
+    const nowH = Number(etParts.formatToParts(new Date()).find(p=>p.type==="hour").value.replace(/^24$/,"0"));
+    series = reps.map(r => hrs.map(h => h <= nowH ? (r.hourly||[])[h] || 0 : null));
+    goal = null; title = "Calls per hour";
+  }
+  const W = 560, H = 150, padL = 34, padR = 10, padT = 10, padB = 22;
+  const maxV = Math.max(goal || 0, ...series.flat().filter(v => v != null), 1) * 1.1;
+  const x = i => padL + i * (W - padL - padR) / (labels.length - 1);
+  const y = v => padT + (H - padT - padB) * (1 - v / maxV);
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("preserveAspectRatio","none");
+  const mk = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  for (let g = 0; g <= 3; g++){ const v = maxV * g / 3, yy = y(v); svg.append(mk("line",{x1:padL,x2:W-padR,y1:yy,y2:yy,class:"grid"})); const t = mk("text",{x:padL-6,y:yy+4,"text-anchor":"end"}); t.textContent = Math.round(v); svg.append(t); }
+  if (goal){ svg.append(mk("line",{x1:padL,x2:W-padR,y1:y(goal),y2:y(goal),class:"goal"})); }
+  labels.forEach((l,i) => { const t = mk("text",{x:x(i),y:H-6,"text-anchor":"middle"}); t.textContent = l; svg.append(t); });
+  series.forEach((pts,si) => {
+    const col = REP_COLORS[si % REP_COLORS.length];
+    let d = "";
+    pts.forEach((v,i) => { if (v == null) return; d += (d ? " L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); });
+    if (d) svg.append(mk("path",{d,class:"ln",stroke:col}));
+    pts.forEach((v,i) => { if (v == null) return; svg.append(mk("circle",{cx:x(i),cy:y(v),r:3.5,fill:col})); });
+  });
+  const ph = el("div","ph"); ph.append(el("span",null,title));
+  const lg = el("div","lg"); reps.forEach((r,i) => { const sp = el("span"); const dot = el("i"); dot.style.background = REP_COLORS[i % REP_COLORS.length]; sp.append(dot, document.createTextNode(r.name.split(" ")[0])); lg.append(sp); });
+  if (goal){ const sp = el("span"); const dot = el("i"); dot.style.background = "var(--good)"; sp.append(dot, document.createTextNode("Goal " + goal)); lg.append(sp); }
+  ph.append(lg);
+  box.append(ph, svg);
+  return box;
 }
 /* ---------- 5:30pm recap: covers the widget once each weekday ---------- */
 const RECAP_HOUR = 17, RECAP_MIN = 30;
