@@ -149,6 +149,12 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 html.tv .rep.cheer{animation-iteration-count:6}
 @media (prefers-reduced-motion:reduce){.rep.cheer{animation:none;background:rgba(70,192,138,.22)}}
 .opt.btn{justify-content:center;color:var(--accent)}
+.lbfilter{display:flex;align-items:center;gap:10px;padding:4px 2px 8px}
+.lbfilter .k{margin:0}
+.lbfilter .link{font-weight:600}
+.lbpick{background:var(--pop,#1b222a);border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:10px;display:flex;flex-direction:column;gap:2px;max-height:260px;overflow:auto}
+.lbpick .opt{white-space:normal;text-align:left}
+html.tv .lbfilter{font-size:14px}
 .trend{display:none}
 html.tv .trend{display:block;grid-column:1/-1;align-self:end;padding:12px 16px 8px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .trend .ph{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;white-space:nowrap}
@@ -507,13 +513,49 @@ function renderCampaigns(s, host){
 }
 
 // Leaderboard: reps ranked by calls for the period (manager not ranked)
+// Leaderboard campaign filter: names of campaigns to include (empty = all), remembered per machine
+let lbCamps = new Set(); try{ lbCamps = new Set(JSON.parse(localStorage.getItem("lbCamps") || "[]")); }catch(_){}
+let lbPickOpen = false;
+function saveLbCamps(){ try{ localStorage.setItem("lbCamps", JSON.stringify([...lbCamps])); }catch(_){} }
 function renderLeaderboard(s, host){
   const main = host || $("main"); main.replaceChildren();
   const isWeek = period==="week";
   const sum = isWeek ? s.week : s.today;
   if (!sum) return;
-  const reps = sum.reps.filter(r=>!r.manager);
   const label = isWeek ? "This week" : "Today";
+  // campaigns that ran in this period, by calls
+  const campTotals = {};
+  for (const r of sum.reps) for (const c of (r.camps||[])) campTotals[c.name] = (campTotals[c.name]||0) + c.calls;
+  const campNames = Object.keys(campTotals).sort((a,b)=>campTotals[b]-campTotals[a]);
+  const active = campNames.filter(n => lbCamps.has(n));
+  const filtering = active.length > 0;
+  // rep numbers for the chosen campaigns only
+  const reps = sum.reps.filter(r=>!r.manager).map(r => {
+    if (!filtering) return r;
+    const t = { calls:0, interested:0, notInterested:0, human:0 };
+    for (const c of (r.camps||[])) if (lbCamps.has(c.name)) { t.calls+=c.calls||0; t.interested+=c.interested; t.notInterested+=c.notInterested; t.human+=c.human||0; }
+    return Object.assign({}, r, t, { goal: null });
+  });
+  // filter bar
+  const bar = el("div","lbfilter");
+  const btn = el("button","link", filtering ? (active.length===1 ? active[0] : active.length + " campaigns") : "All campaigns");
+  btn.title = "Choose which campaigns count"; btn.setAttribute("aria-expanded", String(lbPickOpen));
+  btn.onclick = e => { e.stopPropagation(); lbPickOpen = !lbPickOpen; render(last); };
+  bar.append(el("span","k","Campaigns"), btn);
+  if (filtering){ const clr = el("button","link","× All"); clr.onclick = e => { e.stopPropagation(); lbCamps.clear(); saveLbCamps(); render(last); }; bar.append(clr); }
+  main.append(bar);
+  if (lbPickOpen){
+    const pick = el("div","lbpick");
+    if (!campNames.length) pick.append(el("div","msg","No campaigns ran " + (isWeek ? "this week" : "today") + " yet."));
+    for (const n of campNames){
+      const o = el("button","opt"); o.setAttribute("role","checkbox"); o.setAttribute("aria-checked", String(lbCamps.has(n)));
+      o.append(document.createTextNode(n + " · " + fmt(campTotals[n])), el("span","chk","✓"));
+      o.onclick = e => { e.stopPropagation(); if (lbCamps.has(n)) lbCamps.delete(n); else lbCamps.add(n); saveLbCamps(); render(last); };
+      pick.append(o);
+    }
+    const done = el("button","opt btn","Done"); done.onclick = e => { e.stopPropagation(); lbPickOpen = false; render(last); }; pick.append(done);
+    main.append(pick);
+  }
   const board = (title, list, big, small) => {
     const head = el("section","team"); head.append(el("div","k", label + " · " + title)); main.append(head);
     const box = el("section","lb");

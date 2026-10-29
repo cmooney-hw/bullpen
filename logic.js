@@ -68,13 +68,12 @@ function summarize(calls, start, end) {
     if (c.hour >= 0) p.byHour[c.hour] = (p.byHour[c.hour] || 0) + 1;
     if (c.interested) p.interested++;
     if (c.notInterested) p.notInterested++;
-    if (c.interested || c.notInterested) {
-      const k = c.campaign || "No campaign";
-      const cc = p.camps[k] || (p.camps[k] = { name: k, interested: 0, notInterested: 0 });
-      if (c.interested) cc.interested++;
-      if (c.notInterested) cc.notInterested++;
-    }
-    if (c.human) p.human++;
+    const k = c.campaign || "No campaign";
+    const cc = p.camps[k] || (p.camps[k] = { name: k, calls: 0, interested: 0, notInterested: 0, human: 0 });
+    cc.calls++;
+    if (c.interested) cc.interested++;
+    if (c.notInterested) cc.notInterested++;
+    if (c.human) { p.human++; cc.human++; }
     if (c.ts > p.lastCallTs) p.lastCallTs = c.ts;
   }
   const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, human: 0 };
