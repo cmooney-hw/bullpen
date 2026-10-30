@@ -377,6 +377,7 @@ html.tv .recap .k{font-size:14px}
     <button class="opt" data-t="clear" role="radio" aria-checked="false"><span class="sw clear"></span>Clear glass<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Manager</div>
     <button class="opt" id="optMgr" role="switch" aria-checked="true">Show manager stats<span class="chk">✓</span></button>
+    <button class="opt" id="optIdle" role="switch" aria-checked="true">Show idle tags<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Full screen</div>
     <button class="opt" data-pane="team" role="switch" aria-checked="true">Team<span class="chk">✓</span></button>
     <button class="opt" data-pane="camps" role="switch" aria-checked="true">Active Campaigns<span class="chk">✓</span></button>
@@ -488,6 +489,11 @@ function renderTicker(s){
   // scroll speed scales with length so long feeds don't crawl
   run.style.setProperty("--tdur", Math.max(18, Math.round(run.textContent.length / 6)) + "s");
 }
+// Idle tags on/off
+let showIdle = true; try{ showIdle = localStorage.getItem("showIdle") !== "0"; }catch(_){}
+function applyIdle(rerender){ $("optIdle").setAttribute("aria-checked", String(showIdle)); try{ localStorage.setItem("showIdle", showIdle?"1":"0"); }catch(_){} if (rerender && last) render(last); }
+$("optIdle").onclick = e => { e.stopPropagation(); showIdle = !showIdle; applyIdle(true); };
+applyIdle(false);
 // Meeting-set celebration settings
 const cel = { sound: true, flash: true, popup: true, toast: true };
 try{ cel.sound = localStorage.getItem("celSound") !== "0"; cel.flash = localStorage.getItem("celFlash") !== "0"; cel.popup = localStorage.getItem("celPopup") !== "0"; cel.toast = localStorage.getItem("celToast") !== "0"; }catch(_){}
@@ -800,7 +806,7 @@ function renderTeam(s, main){
   const reps = el("section","reps");
   const mgrBox = el("section","reps");
   for (const r of sum.reps){
-    const idle = isWeek ? 0 : idleMinutes(r);
+    const idle = (isWeek || !showIdle) ? 0 : idleMinutes(r);
     const after = !isWeek && !r.manager && !workingNow();
     const rep = el("div","rep" + (idle ? " idle" : "") + ((cheering[r.id]||0) > Date.now() ? " cheer" : ""));
     rep.append(el("span","av",initials(r.name)), el("span","nm",r.name));
