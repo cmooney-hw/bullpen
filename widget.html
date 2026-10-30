@@ -388,6 +388,8 @@ html.tv .recap .k{font-size:14px}
       <button class="opt btn" id="mcMeeting">+1 meeting</button>
       <button class="opt btn" id="mcCall">+1 call</button>
       <button class="opt btn" id="mcUndo">Undo last</button>
+      <button class="opt btn" id="mcClearToday">Clear today's</button>
+      <button class="opt btn" id="mcClearAll">Clear all</button>
     </div>
     <div class="k" style="margin-top:8px">Ticker</div>
     <button class="opt" id="optTicker" role="switch" aria-checked="true">Show latest-activity ticker<span class="chk">✓</span></button>
@@ -458,6 +460,8 @@ $("mcMeeting").onclick = e => { e.stopPropagation(); credit(1, 1); };
 $("mcCall").onclick = e => { e.stopPropagation(); credit(0, 1); };
 $("mcUndo").onclick = async e => { e.stopPropagation(); if (!lastCredit) return; await board.manualCredit({ agent: lastCredit.agent, meetings: -lastCredit.meetings, calls: -lastCredit.calls }); lastCredit = null; };
 $("mcRep").onclick = e => e.stopPropagation();
+$("mcClearToday").onclick = async e => { e.stopPropagation(); await board.manualCredit({ clear: "today" }); lastCredit = null; };
+$("mcClearAll").onclick = async e => { e.stopPropagation(); if (!confirm("Remove every manually added call and meeting, all days?")) return; await board.manualCredit({ clear: "all" }); lastCredit = null; };
 // Ticker on/off
 let showTicker = true; try{ showTicker = localStorage.getItem("ticker") !== "0"; }catch(_){}
 function applyTicker(){ $("optTicker").setAttribute("aria-checked", String(showTicker)); try{ localStorage.setItem("ticker", showTicker?"1":"0"); }catch(_){} $("ticker").hidden = !showTicker; }

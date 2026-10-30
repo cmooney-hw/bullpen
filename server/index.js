@@ -312,6 +312,8 @@ const server = http.createServer(async (req, res) => {
   if (u.pathname === "/manual" && req.method === "GET") return json(res, 200, manual);
   if (u.pathname === "/manual" && req.method === "POST") {
     const b = await readBody(req);
+    if (b.clear === "today") { delete manual[feed.day]; saveManual(); push(); return json(res, 200, { ok: true, manual }); }
+    if (b.clear === "all") { manual = {}; saveManual(); push(); return json(res, 200, { ok: true, manual }); }
     const day = String(b.day || feed.day || etYMD(new Date())), agent = String(Number(b.agent || 0));
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !REP_IDS.has(Number(agent))) return json(res, 400, { error: "need day and a known agent" });
     const cur = (manual[day] && manual[day][agent]) || { calls: 0, meetings: 0 };
