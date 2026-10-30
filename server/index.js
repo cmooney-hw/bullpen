@@ -335,7 +335,14 @@ const server = http.createServer(async (req, res) => {
     clearTimeout(timer); tick();
     return json(res, 200, { ok: true, message: "Connected. The board is loading." });
   }
-  if (u.pathname === "/replay-alert" && req.method === "POST") { if (lastAlert) broadcast(Object.assign({}, lastAlert, { at: Date.now() })); return json(res, 200, { ok: true, replayed: !!lastAlert }); }
+  if (u.pathname === "/replay-alert" && req.method === "POST") {
+    if (!lastAlert) { // after a restart: the newest Interested / Meeting Set call today
+      const w = [...feed.calls.values()].filter(c => c.ymd === feed.day && c.interested && REP_IDS.has(c.agent)).sort((a, b) => b.ts - a.ts)[0];
+      if (w) lastAlert = alertFor(w);
+    }
+    if (lastAlert) broadcast(Object.assign({}, lastAlert, { at: Date.now() }));
+    return json(res, 200, { ok: true, replayed: !!lastAlert });
+  }
   if (u.pathname === "/test-alert" && req.method === "POST") { const r = REPS[Math.floor(Math.random() * 3)]; broadcast(alertFor({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." })); return json(res, 200, { ok: true }); }
   if (u.pathname === "/resync" && req.method === "POST") { backfill.wanted = true; return json(res, 200, { ok: true }); }
   json(res, 404, { error: "not found" });
