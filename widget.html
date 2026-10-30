@@ -161,6 +161,9 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:10px;pa
 html.tv .rep.cheer{animation-iteration-count:6}
 @media (prefers-reduced-motion:reduce){.rep.cheer{animation:none;background:rgba(70,192,138,.22)}}
 .opt.btn{justify-content:center;color:var(--accent)}
+.mc{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.mc select{flex:1 1 100%;background:var(--surface);border:1px solid var(--line);border-radius:7px;color:var(--fg);padding:6px 8px;font:inherit;font-size:13px}
+.mc .opt.btn{width:auto;flex:1;padding:6px 8px;font-size:12px}
 /* ticker under the title bar */
 .ticker{display:flex;align-items:center;gap:10px;height:26px;padding:0 14px;border-bottom:1px solid var(--line-soft);background:rgba(70,192,138,.06);overflow:hidden;font-size:12px;color:var(--muted);white-space:nowrap}
 .ticker[hidden]{display:none}
@@ -379,6 +382,13 @@ html.tv .recap .k{font-size:14px}
     <button class="opt" data-pane="camps" role="switch" aria-checked="true">Active Campaigns<span class="chk">✓</span></button>
     <button class="opt" data-pane="board" role="switch" aria-checked="true">Leaderboard<span class="chk">✓</span></button>
     <button class="opt" data-pane="chart" role="switch" aria-checked="true">Chart<span class="chk">✓</span></button>
+    <div class="k" style="margin-top:8px">Manual credit (all screens)</div>
+    <div class="mc">
+      <select id="mcRep"><option value="429429">David</option><option value="493151">Nicole</option><option value="582196">Brett</option></select>
+      <button class="opt btn" id="mcMeeting">+1 meeting</button>
+      <button class="opt btn" id="mcCall">+1 call</button>
+      <button class="opt btn" id="mcUndo">Undo last</button>
+    </div>
     <div class="k" style="margin-top:8px">Ticker</div>
     <button class="opt" id="optTicker" role="switch" aria-checked="true">Show latest-activity ticker<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Meeting set</div>
@@ -437,6 +447,17 @@ function applyPanes(rerender){
 }
 for (const o of document.querySelectorAll(".opt[data-pane]")) o.onclick = e => { e.stopPropagation(); tvPanes[o.dataset.pane] = !tvPanes[o.dataset.pane]; if (!tvPanes.team && !tvPanes.camps && !tvPanes.board) tvPanes.team = true; applyPanes(true); };
 applyPanes(false);
+// Manual credits go to the server, so every screen shows them
+let lastCredit = null;
+async function credit(meetings, calls){
+  const agent = Number($("mcRep").value);
+  const r = await board.manualCredit({ agent, meetings, calls });
+  if (r && r.ok) lastCredit = { agent, meetings, calls };
+}
+$("mcMeeting").onclick = e => { e.stopPropagation(); credit(1, 1); };
+$("mcCall").onclick = e => { e.stopPropagation(); credit(0, 1); };
+$("mcUndo").onclick = async e => { e.stopPropagation(); if (!lastCredit) return; await board.manualCredit({ agent: lastCredit.agent, meetings: -lastCredit.meetings, calls: -lastCredit.calls }); lastCredit = null; };
+$("mcRep").onclick = e => e.stopPropagation();
 // Ticker on/off
 let showTicker = true; try{ showTicker = localStorage.getItem("ticker") !== "0"; }catch(_){}
 function applyTicker(){ $("optTicker").setAttribute("aria-checked", String(showTicker)); try{ localStorage.setItem("ticker", showTicker?"1":"0"); }catch(_){} $("ticker").hidden = !showTicker; }
