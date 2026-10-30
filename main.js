@@ -169,6 +169,7 @@ function buildTray() {
   const menu = () => Menu.buildFromTemplate([
     { label: "Show Bullpen", click: showWidget },
     { label: "Open full board (campaigns and reasons)", click: () => shell.openExternal(BOARD_URL) },
+    { label: "Show last win again", click: () => serverPost("/replay-alert") },
     { label: "Send a test pop-up", click: () => serverPost("/test-alert") },
     { label: "TV mode (full screen)", type: "checkbox", checked: tvOn, click: item => { showWidget(); setTv(item.checked); } },
     { label: "Show today's recap", click: () => { showWidget(); widget && widget.webContents.send("show-recap"); } },
@@ -269,7 +270,7 @@ function showCele(a) {
   } else {
     cele.setBounds(d.bounds); cele.show(); cele.webContents.send("cele", a);
   }
-  celeTimer = setTimeout(closeCele, 5 * 60000); // stays up 5 minutes
+  celeTimer = setTimeout(closeCele, 30 * 60000); // stays up 30 minutes
 }
 function closeCele() { clearTimeout(celeTimer); if (cele && !cele.isDestroyed()) cele.close(); cele = null; }
 ipcMain.on("cele-close", closeCele);

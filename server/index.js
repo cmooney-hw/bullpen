@@ -66,11 +66,13 @@ function alertFor(f) {
   const body = [f.contact, f.campaign].filter(Boolean).join(" · ") + (f.note ? "\n" + String(f.note).slice(0, 120) : "");
   return { type: "alert", title, body, at: Date.now(), agent: f.agent, test: String(f.id).startsWith("test-") };
 }
+let lastAlert = null;
 function notifyMeeting(f) {
   if (notified.has(f.id)) return;
   notified.add(f.id);
   log("ALERT", f.id, f.disp, f.contact);
-  broadcast(alertFor(f));
+  lastAlert = alertFor(f);
+  broadcast(lastAlert);
 }
 function maybeNotify(f, prev) {
   if (f.interested && !(prev && prev.interested) && REP_IDS.has(f.agent) && f.ymd === feed.day && f.ts >= startedAt - 15 * 60000) notifyMeeting(f);
@@ -319,7 +321,7 @@ const server = http.createServer(async (req, res) => {
     if (!next.calls && !next.meetings) delete manual[day][agent];
     if (!Object.keys(manual[day]).length) delete manual[day];
     saveManual(); push();
-    if (Number(b.meetings || 0) > 0 && !b.set) { const rep = REPS.find(r => r.id === Number(agent)); broadcast({ type: "alert", title: "Meeting set · " + (rep ? rep.name : "Rep"), body: "Added by manager", at: Date.now(), agent: Number(agent), test: false }); }
+    if (Number(b.meetings || 0) > 0 && !b.set) { const rep = REPS.find(r => r.id === Number(agent)); lastAlert = { type: "alert", title: "Meeting set · " + (rep ? rep.name : "Rep"), body: "Added by manager", at: Date.now(), agent: Number(agent), test: false }; broadcast(lastAlert); }
     return json(res, 200, { ok: true, manual });
   }
   if (u.pathname === "/justcall-key" && req.method === "POST") {
@@ -333,6 +335,7 @@ const server = http.createServer(async (req, res) => {
     clearTimeout(timer); tick();
     return json(res, 200, { ok: true, message: "Connected. The board is loading." });
   }
+  if (u.pathname === "/replay-alert" && req.method === "POST") { if (lastAlert) broadcast(Object.assign({}, lastAlert, { at: Date.now() })); return json(res, 200, { ok: true, replayed: !!lastAlert }); }
   if (u.pathname === "/test-alert" && req.method === "POST") { const r = REPS[Math.floor(Math.random() * 3)]; broadcast(alertFor({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." })); return json(res, 200, { ok: true }); }
   if (u.pathname === "/resync" && req.method === "POST") { backfill.wanted = true; return json(res, 200, { ok: true }); }
   json(res, 404, { error: "not found" });
