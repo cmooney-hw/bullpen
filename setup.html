@@ -25,30 +25,23 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 </style>
 </head>
 <body>
-  <h1>Connect JustCall</h1>
-  <p>Bullpen reads today's Sales Dialer calls straight from JustCall. It only reads. It never dials, texts or changes anything.</p>
-  <ol>
-    <li>In JustCall, open Settings, then <b>APIs and Webhooks</b>.</li>
-    <li>Copy the API key and the API secret.</li>
-    <li>Paste them below and press Connect.</li>
-  </ol>
+  <h1>Connect to Bullpen</h1>
+  <p>Every Bullpen screen reads the same live numbers from one shared Bullpen server, so they always match. Paste the access code Connor gave you.</p>
   <form id="f">
-    <label for="key">API key</label>
+    <label for="key">Bullpen access code</label>
     <input id="key" autocomplete="off" spellcheck="false">
-    <label for="secret">API secret</label>
-    <input id="secret" type="password" autocomplete="off" spellcheck="false">
     <button id="go" type="submit">Connect</button>
   </form>
   <div id="msg"></div>
-  <div class="small">Saved encrypted on this computer only.</div>
+  <div class="small">Saved encrypted on this computer only. The JustCall key lives on the server, not here.</div>
 <script>
 const msg = document.getElementById("msg");
 board.onSetupMessage(m => { msg.className="err"; msg.textContent = m; });
 document.getElementById("f").addEventListener("submit", async e => {
   e.preventDefault();
   const go = document.getElementById("go");
-  go.disabled = true; msg.className=""; msg.textContent = "Checking with JustCall…";
-  const r = await board.saveCreds(document.getElementById("key").value, document.getElementById("secret").value);
+  go.disabled = true; msg.className=""; msg.textContent = "Checking with the Bullpen server…";
+  const r = await board.saveCreds(document.getElementById("key").value, "");
   msg.className = r.ok ? "ok" : "err"; msg.textContent = r.message;
   if (!r.ok) go.disabled = false;
 });

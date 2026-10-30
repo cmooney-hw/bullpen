@@ -10,13 +10,20 @@ const srv = http.createServer((req, res) => {
   res.end(JSON.stringify({ status: "success", data: rows.slice(pg * pp, pg * pp + pp) }));
 }).listen(0, "127.0.0.1", () => {
   process.env.CALLBOARD_TEST_API = "http://127.0.0.1:" + srv.address().port + "/calls";
+  // run the real Bullpen server in-process against the fake JustCall, then point the app at it
+  process.env.PORT = "0"; process.env.ACCESS_TOKEN = "smoke"; process.env.JUSTCALL_KEY = "k"; process.env.JUSTCALL_SECRET = "s";
+  process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "bullpen-smoke-data-"));
   const { app } = require("electron");
-  // fresh profile with a fake key so the real data path runs
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "bullpen-smoke-"));
   app.setPath("userData", home);
-  fs.writeFileSync(path.join(home, "justcall.key"), JSON.stringify({ key: "k", secret: "s" }));
+  fs.writeFileSync(path.join(home, "justcall.key"), JSON.stringify({ code: "smoke" }));
   process.on("uncaughtException", e => { console.error("SMOKE FAIL:", e && e.stack || e); app.exit(1); });
   process.on("unhandledRejection", e => { console.error("SMOKE FAIL (promise):", e && e.stack || e); app.exit(1); });
-  require("./main.js");
-  app.whenReady().then(() => setTimeout(() => { console.log("SMOKE OK"); app.exit(0); }, 9000));
+  const bserver = require("./server/index.js");
+  const wait = setInterval(() => { if (!bserver.port()) return; clearInterval(wait); process.env.BULLPEN_SERVER = "http://127.0.0.1:" + bserver.port(); require("./main.js"); }, 50);
+  app.whenReady().then(() => setTimeout(async () => {
+    const r = await fetch(process.env.BULLPEN_SERVER + "/state?token=smoke").then(r => r.json()).catch(() => null);
+    if (!r || !r.today || !r.today.team.calls) { console.error("SMOKE FAIL: server has no numbers", r && r.status); app.exit(1); }
+    console.log("SMOKE OK", r.today.team.calls, "calls"); app.exit(0);
+  }, 9000));
 });

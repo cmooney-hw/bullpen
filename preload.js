@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("board", {
   onCele: cb => ipcRenderer.on("cele", (_e, a) => cb(a)),
   celeClose: () => ipcRenderer.send("cele-close"),
   setAlerts: o => ipcRenderer.send("set-alerts", o),
+  manualCredit: b => ipcRenderer.invoke("manual-credit", b),
   testAlert: () => ipcRenderer.send("test-alert"),
   recapOpened: () => ipcRenderer.send("recap-opened"),
   onTick: cb => ipcRenderer.on("tick", (_e, t) => cb(t)),
