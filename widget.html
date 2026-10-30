@@ -738,12 +738,12 @@ function render(s){
     (s.status==="live" ? "Live · " + when :
     s.status==="slow" ? "JustCall asked to slow down · checking every minute" :
     s.status==="offline" ? (when ? "Offline · last update " + when : "Waiting for internet…") :
-    s.status==="needs-key" ? "Needs your JustCall API key" : "Loading today's calls…") + (s.version ? "  ·  v" + s.version : "");
+    s.status==="needs-key" ? "Needs the Bullpen access code" : "Loading today's calls…") + (s.version ? "  ·  v" + s.version : "");
 
   const main = $("main");
   if (s.status==="needs-key" && !s.today){
-    main.replaceChildren(); const m=el("div","msg","Connect your JustCall API key to see today's numbers."); main.append(m);
-    const b=el("button","link","Connect JustCall"); b.onclick=()=>board.openSetup(); m.append(document.createElement("br"), b); return;
+    main.replaceChildren(); const m=el("div","msg","Enter the Bullpen access code to see the live board."); main.append(m);
+    const b=el("button","link","Connect to Bullpen"); b.onclick=()=>board.openSetup(); m.append(document.createElement("br"), b); return;
   }
   if (tv){
     const want = [["team","Team",renderTeam],["camps","Active Campaigns",renderCampaigns],["board","Leaderboard",renderLeaderboard]].filter(w => tvPanes[w[0]]);
