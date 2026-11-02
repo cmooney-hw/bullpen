@@ -378,6 +378,10 @@ html.tv .recap .k{font-size:14px}
     <div class="k" style="margin-top:8px">Manager</div>
     <button class="opt" id="optMgr" role="switch" aria-checked="true">Show manager stats<span class="chk">✓</span></button>
     <button class="opt" id="optIdle" role="switch" aria-checked="true">Show idle tags<span class="chk">✓</span></button>
+    <div class="k" style="margin-top:8px">Reps on the board (all screens)</div>
+    <button class="opt" data-rep="429429" role="switch" aria-checked="true">David<span class="chk">✓</span></button>
+    <button class="opt" data-rep="493151" role="switch" aria-checked="true">Nicole<span class="chk">✓</span></button>
+    <button class="opt" data-rep="582196" role="switch" aria-checked="true">Brett<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Full screen</div>
     <button class="opt" data-pane="team" role="switch" aria-checked="true">Team<span class="chk">✓</span></button>
     <button class="opt" data-pane="camps" role="switch" aria-checked="true">Active Campaigns<span class="chk">✓</span></button>
@@ -489,6 +493,9 @@ function renderTicker(s){
   // scroll speed scales with length so long feeds don't crawl
   run.style.setProperty("--tdur", Math.max(18, Math.round(run.textContent.length / 6)) + "s");
 }
+// Reps on/off (OOO): stored on the server so every screen agrees
+for (const o of document.querySelectorAll(".opt[data-rep]")) o.onclick = e => { e.stopPropagation(); const on = o.getAttribute("aria-checked") === "true"; o.setAttribute("aria-checked", String(!on)); board.setRep({ agent: Number(o.dataset.rep), hidden: on }); };
+function applyRepToggles(s){ const hidden = new Set((s.hiddenReps || []).map(Number)); for (const o of document.querySelectorAll(".opt[data-rep]")) o.setAttribute("aria-checked", String(!hidden.has(Number(o.dataset.rep)))); }
 // Idle tags on/off
 let showIdle = true; try{ showIdle = localStorage.getItem("showIdle") !== "0"; }catch(_){}
 function applyIdle(rerender){ $("optIdle").setAttribute("aria-checked", String(showIdle)); try{ localStorage.setItem("showIdle", showIdle?"1":"0"); }catch(_){} if (rerender && last) render(last); }
@@ -688,7 +695,7 @@ function renderLeaderboard(s, host){
   const active = campNames.filter(n => lbCamps.has(n));
   const filtering = active.length > 0;
   // rep numbers for the chosen campaigns only
-  const reps = sum.reps.filter(r=>!r.manager).map(r => {
+  const reps = sum.reps.filter(r=>!r.manager && !r.hidden).map(r => {
     if (!filtering) return r;
     const t = { calls:0, interested:0, notInterested:0, human:0 };
     for (const c of (r.camps||[])) if (lbCamps.has(c.name)) { t.calls+=c.calls||0; t.interested+=c.interested; t.notInterested+=c.notInterested; t.human+=c.human||0; }
@@ -806,6 +813,7 @@ function renderTeam(s, main){
   const reps = el("section","reps");
   const mgrBox = el("section","reps");
   for (const r of sum.reps){
+    if (r.hidden) continue;
     const idle = (isWeek || !showIdle) ? 0 : idleMinutes(r);
     const after = !isWeek && !r.manager && !workingNow();
     const rep = el("div","rep" + (idle ? " idle" : "") + ((cheering[r.id]||0) > Date.now() ? " cheer" : ""));
@@ -858,7 +866,7 @@ function renderTeam(s, main){
 const REP_COLORS = ["#6fb4ff","#f2a93b","#e86f9a","#9b8cff"];
 function trendChart(sum, isWeek){
   const box = el("div","trend");
-  const reps = sum.reps.filter(r => !r.manager);
+  const reps = sum.reps.filter(r => !r.manager && !r.hidden);
   let labels, series, goal, title;
   if (isWeek){
     labels = ["Mon","Tue","Wed","Thu","Fri"];
@@ -1036,7 +1044,7 @@ setInterval(() => {
 }, 900);
 (function puffLoop(){ const b = document.querySelector(".bull"); if (b){ b.classList.remove("puff"); void b.offsetWidth; b.classList.add("puff"); } setTimeout(puffLoop, 6000 + Math.random()*6000); })();
 $("btnUpdate").onclick = () => board.installUpdate();
-board.onState(s => { renderTicker(s); $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
+board.onState(s => { applyRepToggles(s); renderTicker(s); $("btnUpdate").hidden = !s.updateReady; if (s.updateReady) $("btnUpdate").textContent = "v" + s.updateReady + " ready · Restart"; render(s); checkRecap(); if (!$("recap").hidden) showRecap(); });
 setInterval(() => { if (last){ render(last); checkRecap(); } }, 30000); // keeps idle timers current and catches 5:30
 </script>
 </body>

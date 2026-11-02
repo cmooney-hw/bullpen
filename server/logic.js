@@ -59,7 +59,9 @@ function workdaysBetween(start, end) { let n = 0; for (let d = start; d <= end; 
 // calls: Map id -> facts. Numbers for the ET days start..end (inclusive).
 // (JustCall writes a call record only after the call ends, with its final pickup type and duration, so no settling delay is needed)
 // manual: { "YYYY-MM-DD": { "<agent id>": { calls, meetings } } } hand-added credits (e.g. meetings booked off the dialer)
-function summarize(calls, start, end, manual) {
+// hidden: Set of agent ids that are off the board (OOO); they drop out of the team totals and goal
+function summarize(calls, start, end, manual, hidden) {
+  hidden = hidden || new Set();
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
@@ -92,7 +94,7 @@ function summarize(calls, start, end, manual) {
   }
   const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, human: 0 };
   for (const r of REPS) {
-    if (r.manager) continue;
+    if (r.manager || hidden.has(r.id)) continue;
     const p = per[r.id];
     team.calls += p.calls; team.goal += GOAL * days;
     team.interested += p.interested; team.notInterested += p.notInterested; team.human += p.human;
@@ -101,7 +103,7 @@ function summarize(calls, start, end, manual) {
   const weekDays = []; for (let i = 0; i < 5; i++) weekDays.push(addDays(mondayOf(start), i));
   return {
     start, end, days, team, weekDays,
-    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps), daily: weekDays.map(d => per[r.id].byDay[d] || 0), hourly: Array.from({ length: 24 }, (_, h) => per[r.id].byHour[h] || 0) }))
+    reps: REPS.map(r => Object.assign({ id: r.id, name: r.name, manager: !!r.manager, hidden: hidden.has(r.id), goal: r.manager ? null : GOAL * days }, per[r.id], { camps: Object.values(per[r.id].camps), daily: weekDays.map(d => per[r.id].byDay[d] || 0), hourly: Array.from({ length: 24 }, (_, h) => per[r.id].byHour[h] || 0) }))
   };
 }
 

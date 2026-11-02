@@ -112,7 +112,7 @@ function push() {
   if (!widget || widget.isDestroyed()) return;
   const s = state || {};
   const status = serverStatus === "needs-code" ? "needs-key" : serverStatus === "offline" || serverStatus === "connecting" ? (state ? "offline" : "loading") : (s.status || "loading");
-  widget.webContents.send("state", { status, error: s.error || null, updatedAt: s.updatedAt || null, weekReady: !!s.weekReady, today: s.today || null, week: s.week || null, meetings: s.meetings || [], campaigns: s.campaigns || [], campaignsListed: !!s.campaignsListed, updateReady, version: app.getVersion(), ticker: s.ticker || [], manual: s.manual || {}, server: SERVER });
+  widget.webContents.send("state", { status, error: s.error || null, updatedAt: s.updatedAt || null, weekReady: !!s.weekReady, today: s.today || null, week: s.week || null, meetings: s.meetings || [], campaigns: s.campaigns || [], campaignsListed: !!s.campaignsListed, updateReady, version: app.getVersion(), ticker: s.ticker || [], manual: s.manual || {}, hiddenReps: s.hiddenReps || [], server: SERVER });
 }
 
 /* ---------------- windows ---------------- */
@@ -277,6 +277,7 @@ ipcMain.on("cele-close", closeCele);
 ipcMain.on("set-alerts", (_e, o) => { if (o && typeof o === "object") alertPrefs = Object.assign(alertPrefs, o); });
 ipcMain.on("test-alert", () => { serverPost("/test-alert"); });
 ipcMain.handle("manual-credit", async (_e, b) => serverPost("/manual", b));
+ipcMain.handle("set-rep", async (_e, b) => serverPost("/reps", b));
 ipcMain.on("recap-opened", () => { if (widget && !widget.isDestroyed()) { widget.show(); widget.moveTop(); } });
 ipcMain.on("refresh-now", () => { serverPost("/resync"); });
 ipcMain.handle("save-creds", async (_e, c) => {

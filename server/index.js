@@ -58,6 +58,12 @@ let manual = {};
 try { manual = JSON.parse(fs.readFileSync(manualFile, "utf8")) || {}; } catch (_) {}
 function saveManual() { try { fs.writeFileSync(manualFile, JSON.stringify(manual, null, 2)); } catch (e) { log("manual save failed", e.message); } }
 
+/* ---- reps off the board (OOO), shared by every screen ---- */
+const repsFile = path.join(DATA_DIR, "reps.json");
+let hiddenReps = new Set();
+try { hiddenReps = new Set((JSON.parse(fs.readFileSync(repsFile, "utf8")) || {}).hidden || []); } catch (_) {}
+function saveReps() { try { fs.writeFileSync(repsFile, JSON.stringify({ hidden: [...hiddenReps] })); } catch (e) { log("reps save failed", e.message); } }
+
 /* ---- meeting alerts: broadcast to every screen; each screen decides how loud to be ---- */
 function alertFor(f) {
   const rep = REPS.find(r => r.id === f.agent);
@@ -288,12 +294,12 @@ async function tick() {
 /* ---- state ---- */
 let lastState = null;
 function buildState() {
-  const today = feed.day ? summarize(feed.calls, feed.day, feed.day, manual) : null;
-  const week = feed.day ? summarize(feed.calls, feed.week, feed.day, manual) : null;
+  const today = feed.day ? summarize(feed.calls, feed.day, feed.day, manual, hiddenReps) : null;
+  const week = feed.day ? summarize(feed.calls, feed.week, feed.day, manual, hiddenReps) : null;
   const meetings = feed.day ? [...feed.calls.values()].filter(c => c.ymd === feed.day && c.interested && REP_IDS.has(c.agent))
     .sort((a, b) => a.ts - b.ts).map(c => ({ agent: c.agent, contact: c.contact, campaign: c.campaign, disp: c.disp, note: String(c.note || "").slice(0, 160) })) : [];
   return { type: "state", status: feed.status, error: feed.error, updatedAt: feed.updatedAt, weekReady: feed.ready, today, week, meetings,
-    campaigns: campaignSummary(), campaignsListed: camps.listedAt > 0, ticker: tickerEvents(), manual, serverVersion: VERSION, clients: wss ? wss.clients.size : 0 };
+    campaigns: campaignSummary(), campaignsListed: camps.listedAt > 0, ticker: tickerEvents(), manual, hiddenReps: [...hiddenReps], serverVersion: VERSION, clients: wss ? wss.clients.size : 0 };
 }
 function push() { lastState = buildState(); broadcast(lastState); }
 
@@ -344,6 +350,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (lastAlert) broadcast(Object.assign({}, lastAlert, { at: Date.now() }));
     return json(res, 200, { ok: true, replayed: !!lastAlert });
+  }
+  if (u.pathname === "/reps" && req.method === "POST") {
+    const b = await readBody(req); const id = Number(b.agent || 0);
+    if (!REP_IDS.has(id)) return json(res, 400, { error: "unknown agent" });
+    if (b.hidden) hiddenReps.add(id); else hiddenReps.delete(id);
+    saveReps(); push(); return json(res, 200, { ok: true, hidden: [...hiddenReps] });
   }
   if (u.pathname === "/test-alert" && req.method === "POST") { const r = REPS[Math.floor(Math.random() * 3)]; broadcast(alertFor({ id: "test-" + Date.now(), agent: r.id, disp: "Meeting Set", contact: "Test contact", campaign: "Test campaign", note: "This is a test. Real ones look like this." })); return json(res, 200, { ok: true }); }
   if (u.pathname === "/resync" && req.method === "POST") { backfill.wanted = true; return json(res, 200, { ok: true }); }
