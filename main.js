@@ -270,7 +270,7 @@ function showCele(a) {
   } else {
     cele.setBounds(d.bounds); cele.show(); cele.webContents.send("cele", a);
   }
-  celeTimer = setTimeout(closeCele, 30 * 60000); // stays up 30 minutes
+  celeTimer = setTimeout(closeCele, 7 * 60000); // stays up 7 minutes
 }
 function closeCele() { clearTimeout(celeTimer); if (cele && !cele.isDestroyed()) cele.close(); cele = null; }
 ipcMain.on("cele-close", closeCele);
