@@ -497,7 +497,7 @@ function renderTicker(s){
 for (const o of document.querySelectorAll(".opt[data-rep]")) o.onclick = e => { e.stopPropagation(); const on = o.getAttribute("aria-checked") === "true"; o.setAttribute("aria-checked", String(!on)); board.setRep({ agent: Number(o.dataset.rep), hidden: on }); };
 function applyRepToggles(s){ const hidden = new Set((s.hiddenReps || []).map(Number)); for (const o of document.querySelectorAll(".opt[data-rep]")) o.setAttribute("aria-checked", String(!hidden.has(Number(o.dataset.rep)))); }
 // Idle tags on/off
-let showIdle = true; try{ showIdle = localStorage.getItem("showIdle") !== "0"; }catch(_){}
+let showIdle = false; try{ if (localStorage.getItem("idleOff1") !== "1") { localStorage.setItem("idleOff1","1"); localStorage.setItem("showIdle","0"); } showIdle = localStorage.getItem("showIdle") === "1"; }catch(_){}
 function applyIdle(rerender){ $("optIdle").setAttribute("aria-checked", String(showIdle)); try{ localStorage.setItem("showIdle", showIdle?"1":"0"); }catch(_){} if (rerender && last) render(last); }
 $("optIdle").onclick = e => { e.stopPropagation(); showIdle = !showIdle; applyIdle(true); };
 applyIdle(false);
