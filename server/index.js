@@ -216,7 +216,7 @@ function saveCache(force) {
   if (!feed.week || (!cacheDirty && !force)) return;
   if (!force && Date.now() - lastCacheWrite < 20000) return;
   try {
-    const data = { v: 4, week: feed.week, savedAt: Date.now(), calls: [...feed.calls.values()],
+    const data = { v: 5, week: feed.week, savedAt: Date.now(), calls: [...feed.calls.values()],
       camps: [...camps.byId.values()].map(c => ({ id: c.id, name: c.name, status: c.status, created: c.created, contacts: c.contacts, page: c.page, loaded: c.loaded, calls: [...c.calls.entries()] })),
       campsListedAt: camps.listedAt };
     fs.writeFileSync(cacheFile + ".tmp", JSON.stringify(data)); fs.renameSync(cacheFile + ".tmp", cacheFile);
@@ -226,7 +226,7 @@ function saveCache(force) {
 function loadCache() {
   try {
     const d = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
-    if (!d || d.v !== 4 || d.week !== feed.week) return false;
+    if (!d || d.v !== 5 || d.week !== feed.week) return false;
     for (const f of d.calls || []) feed.calls.set(f.id, f);
     for (const c of d.camps || []) camps.byId.set(c.id, Object.assign({}, c, { calls: new Map(c.calls || []) }));
     camps.listedAt = d.campsListedAt || 0;

@@ -11,6 +11,8 @@ const INTERESTED = new Set(["interested", "meeting set"]);
 const MEETING_NOTE_RE = /(meeting\s*(set|scheduled|booked)|(set|scheduled|booked)\s+(a\s+)?(meeting|demo|appointment)|appointment\s*(set|scheduled|booked))/i;
 // Human connection: the rep logged one of these outcomes AND the call lasted more than 15 seconds
 const HUMAN = new Set(["interested","meeting set","not interested","other - see notes","other","wrong number","no longer at company"]);
+// "Highwater follow-up" / "HW follow up" (any spelling) also means they talked to someone
+const FOLLOWUP_RE = /^(highwater|hw)\s*[-\s]?\s*follow[\s-]*up/i;
 const MIN_CONNECT_SECS = 15;
 const DNC_RE = /(do\s*not\s*call|don'?t\s*call|\bdnc\b|remove (me|him|her|them|us)? ?from|take (me|him|her|them|us) off)/i;
 
@@ -47,7 +49,7 @@ function rowFacts(r) {
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
     interested: INTERESTED.has(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
-    human: longEnough && HUMAN.has(dl),
+    human: longEnough && (HUMAN.has(dl) || FOLLOWUP_RE.test(dl)),
     notInterested: isNI && !DNC_RE.test(note)
   };
 }
