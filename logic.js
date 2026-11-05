@@ -14,6 +14,8 @@ const HUMAN = new Set(["interested","meeting set","not interested","other - see 
 // "Highwater follow-up" / "HW follow up" (any spelling) also means they talked to someone
 const FOLLOWUP_RE = /^(highwater|hw)\s*[-\s]?\s*follow[\s-]*up/i;
 const MIN_CONNECT_SECS = 15;
+// Some campaigns use their own disposition names, e.g. "Interested - Appointment Set"
+const INTERESTED_RE = /^(interested\b|meeting\s*set\b|appointment\s*set\b)/i;
 const DNC_RE = /(do\s*not\s*call|don'?t\s*call|\bdnc\b|remove (me|him|her|them|us)? ?from|take (me|him|her|them|us) off)/i;
 
 const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#039;": "'", "&#39;": "'", "&apos;": "'", "&nbsp;": " " };
@@ -48,8 +50,8 @@ function rowFacts(r) {
     campaign: decode(r.campaign && r.campaign.name),
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
-    interested: INTERESTED.has(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
-    human: longEnough && (HUMAN.has(dl) || FOLLOWUP_RE.test(dl)),
+    interested: INTERESTED.has(dl) || INTERESTED_RE.test(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
+    human: longEnough && (HUMAN.has(dl) || INTERESTED_RE.test(dl) || FOLLOWUP_RE.test(dl)),
     notInterested: isNI && !DNC_RE.test(note)
   };
 }
