@@ -48,14 +48,14 @@ function saveCreds(c) {
 /* ---------------- Bullpen server: the shared brain every screen reads from ---------------- */
 const SERVER = process.env.BULLPEN_SERVER || "https://bullpen-server-production.up.railway.app";
 const WS = require("ws");
-let sock = null, state = null, wsTimer = null, connected = false, lastMsgAt = 0;
+let sock = null, state = null, wsTimer = null, connected = false, lastMsgAt = 0, lastAttemptAt = 0;
 let serverStatus = "connecting"; // connecting | live | needs-code | offline
 const REP_IDS = new Set(REPS.map(r => r.id));
 const startedAt = Date.now();
 
 function accessCode() { const c = loadCreds(); return c && c.code ? c.code : null; }
 function connect() {
-  clearTimeout(wsTimer);
+  clearTimeout(wsTimer); lastAttemptAt = Date.now();
   const code = accessCode();
   if (!code) { serverStatus = "needs-code"; push(); openSetup(); return; }
   try { if (sock) { sock.removeAllListeners(); sock.terminate(); } } catch (_) {}
@@ -69,7 +69,13 @@ function connect() {
     else if (m.type === "tick") { if (widget && !widget.isDestroyed()) widget.webContents.send("tick", { next: m.next }); }
     else if (m.type === "alert") onAlert(m);
   });
-  sock.on("unexpected-response", (_req, res) => { if (res && res.statusCode === 401) { serverStatus = "needs-code"; push(); openSetup("That access code wasn't accepted."); } });
+  sock.on("unexpected-response", (_req, res) => {
+    if (res && res.statusCode === 401) { serverStatus = "needs-code"; push(); openSetup("That access code wasn't accepted."); return; }
+    // Server restarting (502/503 etc): try again shortly instead of waiting forever
+    connected = false; serverStatus = "offline"; push();
+    try { sock.removeAllListeners(); sock.terminate(); } catch (_) {}
+    clearTimeout(wsTimer); wsTimer = setTimeout(connect, 5000);
+  });
   const down = () => { connected = false; if (serverStatus !== "needs-code") serverStatus = "offline"; push(); wsTimer = setTimeout(connect, 5000); };
   sock.on("close", down); sock.on("error", () => {});
 }
@@ -91,7 +97,11 @@ async function serverPost(pathname, body) {
   try { const r = await fetch(SERVER + pathname + "?token=" + encodeURIComponent(code), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) }); return await r.json(); } catch (_) { return null; }
 }
 // no state for 20 s = treat as offline until the socket comes back
-setInterval(() => { if (connected && Date.now() - lastMsgAt > 20000) { try { sock && sock.terminate(); } catch (_) {} } }, 5000);
+setInterval(() => {
+  if (connected && Date.now() - lastMsgAt > 20000) { try { sock && sock.terminate(); } catch (_) {} }
+  // Safety net: if we're not connected and nothing is retrying, start again
+  if (!connected && serverStatus !== "needs-code" && Date.now() - lastAttemptAt > 20000) connect();
+}, 5000);
 
 /* ---- meeting pop-ups (the server decides what is a win; each screen decides how loud to be) ---- */
 function onAlert(a) {

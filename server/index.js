@@ -63,6 +63,12 @@ const repsFile = path.join(DATA_DIR, "reps.json");
 let hiddenReps = new Set();
 try { hiddenReps = new Set((JSON.parse(fs.readFileSync(repsFile, "utf8")) || {}).hidden || []); } catch (_) {}
 function saveReps() { try { fs.writeFileSync(repsFile, JSON.stringify({ hidden: [...hiddenReps] })); } catch (e) { log("reps save failed", e.message); } }
+// Calls marked by hand as "not a meeting" even though the disposition says so
+const notMeetingFile = path.join(DATA_DIR, "not-meeting.json");
+let notMeeting = new Set([155576296]); // Mark Levin (AMETEK) 11/4: only agreed to an email
+try { for (const id of (JSON.parse(fs.readFileSync(notMeetingFile, "utf8")) || {}).ids || []) notMeeting.add(Number(id)); } catch (_) {}
+function saveNotMeeting() { try { fs.writeFileSync(notMeetingFile, JSON.stringify({ ids: [...notMeeting] })); } catch (e) { log("not-meeting save failed", e.message); } }
+const factsOf = r => { const f = rowFacts(r); if (notMeeting.has(Number(f.id))) f.interested = false; return f; };
 
 /* ---- meeting alerts: broadcast to every screen; each screen decides how loud to be ---- */
 function alertFor(f) {
@@ -90,7 +96,7 @@ async function pollNewest() {
     const rows = await getCalls(Object.assign(range(feed.day), { per_page: 100, page, sort: "id", order: "desc" }));
     let overlap = false, older = false;
     for (const r of rows) {
-      const f = rowFacts(r);
+      const f = factsOf(r);
       const prev = feed.calls.get(f.id);
       if (prev) overlap = true;
       if (f.ymd < feed.week) { older = true; continue; }
@@ -139,7 +145,7 @@ async function loadCampaignPage() {
   if (!c) return false;
   const today = etYMD(new Date()), cutoff = addDays(today, -HISTORY_DAYS);
   const rows = await getCalls({ campaign_id: c.id, from_datetime: c.created > cutoff ? c.created : cutoff, to_datetime: today + " 23:59:59", per_page: 100, page: c.page, sort: "id", order: "asc" });
-  for (const r of rows) { const f = rowFacts(r); if (REP_IDS.has(f.agent)) c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested }); }
+  for (const r of rows) { const f = factsOf(r); if (REP_IDS.has(f.agent)) c.calls.set(f.id, { interested: f.interested, notInterested: f.notInterested }); }
   if (rows.length < 100) c.loaded = true; else c.page++;
   cacheDirty = true;
   push();
@@ -200,7 +206,7 @@ async function resync(fromDay) {
   for (let page = 0; page < 60; page++) {
     const rows = await getCalls(Object.assign(range(feed.day), { per_page: 100, page, sort: "id", order: "desc" }));
     let older = false;
-    for (const r of rows) { const f = rowFacts(r); if (f.ymd < fromDay) { older = true; continue; } const prev = feed.calls.get(f.id); feed.calls.set(f.id, f); cacheDirty = true; trackCampaignCall(f); maybeNotify(f, prev); }
+    for (const r of rows) { const f = factsOf(r); if (f.ymd < fromDay) { older = true; continue; } const prev = feed.calls.get(f.id); feed.calls.set(f.id, f); cacheDirty = true; trackCampaignCall(f); maybeNotify(f, prev); }
     if (older || rows.length < 100) break;
     await sleep(1500);
   }
@@ -216,7 +222,7 @@ function saveCache(force) {
   if (!feed.week || (!cacheDirty && !force)) return;
   if (!force && Date.now() - lastCacheWrite < 20000) return;
   try {
-    const data = { v: 6, week: feed.week, savedAt: Date.now(), calls: [...feed.calls.values()],
+    const data = { v: 7, week: feed.week, savedAt: Date.now(), calls: [...feed.calls.values()],
       camps: [...camps.byId.values()].map(c => ({ id: c.id, name: c.name, status: c.status, created: c.created, contacts: c.contacts, page: c.page, loaded: c.loaded, calls: [...c.calls.entries()] })),
       campsListedAt: camps.listedAt };
     fs.writeFileSync(cacheFile + ".tmp", JSON.stringify(data)); fs.renameSync(cacheFile + ".tmp", cacheFile);
@@ -226,7 +232,7 @@ function saveCache(force) {
 function loadCache() {
   try {
     const d = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
-    if (!d || d.v !== 6 || d.week !== feed.week) return false;
+    if (!d || d.v !== 7 || d.week !== feed.week) return false;
     for (const f of d.calls || []) feed.calls.set(f.id, f);
     for (const c of d.camps || []) camps.byId.set(c.id, Object.assign({}, c, { calls: new Map(c.calls || []) }));
     camps.listedAt = d.campsListedAt || 0;
@@ -249,7 +255,7 @@ async function runBackfill() {
       else if (!backfill.done) {
         const rows = await getCalls(Object.assign(range(feed.day), { per_page: 100, page: backfill.page, sort: "id", order: "desc" }));
         let older = false, known = 0;
-        for (const r of rows) { const f = rowFacts(r); if (f.ymd >= feed.week) { if (!feed.calls.has(f.id)) { feed.calls.set(f.id, f); cacheDirty = true; } else known++; } else older = true; }
+        for (const r of rows) { const f = factsOf(r); if (f.ymd >= feed.week) { if (!feed.calls.has(f.id)) { feed.calls.set(f.id, f); cacheDirty = true; } else known++; } else older = true; }
         push();
         if (rows.length < 100 || older || backfill.page >= 150 || (rows.length && known === rows.length)) { backfill.done = true; feed.ready = true; push(); saveCache(true); }
         else backfill.page++;
@@ -350,6 +356,13 @@ const server = http.createServer(async (req, res) => {
     }
     if (lastAlert) broadcast(Object.assign({}, lastAlert, { at: Date.now() }));
     return json(res, 200, { ok: true, replayed: !!lastAlert });
+  }
+  if (u.pathname === "/not-meeting" && req.method === "POST") {
+    const b = await readBody(req); const id = Number(b.id || 0);
+    if (!id) return json(res, 400, { error: "id required" });
+    if (b.on === false) notMeeting.delete(id); else notMeeting.add(id);
+    saveNotMeeting(); const c = feed.calls.get(id); if (c && notMeeting.has(id)) c.interested = false;
+    backfill.wanted = true; push(); return json(res, 200, { ok: true, ids: [...notMeeting] });
   }
   if (u.pathname === "/reps" && req.method === "POST") {
     const b = await readBody(req); const id = Number(b.agent || 0);
