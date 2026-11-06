@@ -16,6 +16,16 @@ const FOLLOWUP_RE = /^(highwater|hw)\s*[-\s]?\s*follow[\s-]*up/i;
 const MIN_CONNECT_SECS = 15;
 // Some campaigns use their own disposition names, e.g. "Interested - Appointment Set"
 const INTERESTED_RE = /^(interested\b|meeting\s*set\b|appointment\s*set\b)/i;
+// Outcome tags shown as small icons on each rep card
+const OUTCOMES = [
+  ["wrong", /^wrong\s*number/i],
+  ["left", /^no\s*longer\s*(at|with)/i],
+  ["wcp", /^wrong\s*contact/i],
+  ["disc", /^disconnected/i],
+  ["fu", /^(highwater|hw)\s*[-\s]?\s*follow[\s-]*up/i],
+  ["oth", /^other/i]
+];
+const outcomeOf = dl => { for (const [k, re] of OUTCOMES) if (re.test(dl)) return k; return null; };
 const DNC_RE = /(do\s*not\s*call|don'?t\s*call|\bdnc\b|remove (me|him|her|them|us)? ?from|take (me|him|her|them|us) off)/i;
 
 const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#039;": "'", "&#39;": "'", "&apos;": "'", "&nbsp;": " " };
@@ -50,6 +60,7 @@ function rowFacts(r) {
     campaign: decode(r.campaign && r.campaign.name),
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
+    outcome: outcomeOf(dl),
     interested: INTERESTED.has(dl) || INTERESTED_RE.test(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
     human: longEnough && (HUMAN.has(dl) || INTERESTED_RE.test(dl) || FOLLOWUP_RE.test(dl)),
     notInterested: isNI && !DNC_RE.test(note)
@@ -69,7 +80,7 @@ function summarize(calls, start, end, manual, hidden) {
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
-  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {}, byHour: {} };
+  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {}, byHour: {}, dispos: {} };
   for (const c of calls.values()) {
     if (c.ymd < start || c.ymd > end || !per[c.agent]) continue;
     const p = per[c.agent];
@@ -78,6 +89,7 @@ function summarize(calls, start, end, manual, hidden) {
     if (c.hour >= 0) p.byHour[c.hour] = (p.byHour[c.hour] || 0) + 1;
     if (c.interested) p.interested++;
     if (c.notInterested) p.notInterested++;
+    if (c.outcome) p.dispos[c.outcome] = (p.dispos[c.outcome] || 0) + 1;
     const k = c.campaign || "No campaign";
     const cc = p.camps[k] || (p.camps[k] = { name: k, calls: 0, interested: 0, notInterested: 0, human: 0 });
     cc.calls++;

@@ -347,6 +347,11 @@ html.tv .recap .k{font-size:14px}
 .closebtn{all:unset;-webkit-app-region:no-drag;cursor:pointer;margin-left:auto;padding:5px 12px;border-radius:7px;background:var(--accent);color:#0b1520;font-weight:600;font-size:12px}
 .closebtn:focus-visible{outline:2px solid var(--fg)}
 .msg .link{display:inline-block;margin-top:8px}
+.dispos{grid-column:2/4;display:flex;gap:6px;flex-wrap:wrap}
+.di{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:2px 8px 2px 6px;font-size:11px;font-weight:700;color:inherit;font-family:var(--f-mono)}
+.di svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.di.zero{opacity:.3}
+html.tv .di{font-size:13px;padding:3px 10px 3px 7px}html.tv .di svg{width:15px;height:15px}
 </style>
 </head>
 <body>
@@ -378,6 +383,7 @@ html.tv .recap .k{font-size:14px}
     <div class="k" style="margin-top:8px">Manager</div>
     <button class="opt" id="optMgr" role="switch" aria-checked="true">Show manager stats<span class="chk">✓</span></button>
     <button class="opt" id="optIdle" role="switch" aria-checked="true">Show idle tags<span class="chk">✓</span></button>
+    <button class="opt" id="optDispos" role="switch" aria-checked="true">Show outcome icons (wrong number, left, etc.)<span class="chk">✓</span></button>
     <div class="k" style="margin-top:8px">Reps on the board (all screens)</div>
     <button class="opt" data-rep="429429" role="switch" aria-checked="true">David<span class="chk">✓</span></button>
     <button class="opt" data-rep="493151" role="switch" aria-checked="true">Nicole<span class="chk">✓</span></button>
@@ -500,6 +506,12 @@ function applyRepToggles(s){ const hidden = new Set((s.hiddenReps || []).map(Num
 let showIdle = false; try{ if (localStorage.getItem("idleOff1") !== "1") { localStorage.setItem("idleOff1","1"); localStorage.setItem("showIdle","0"); } showIdle = localStorage.getItem("showIdle") === "1"; }catch(_){}
 function applyIdle(rerender){ $("optIdle").setAttribute("aria-checked", String(showIdle)); try{ localStorage.setItem("showIdle", showIdle?"1":"0"); }catch(_){} if (rerender && last) render(last); }
 $("optIdle").onclick = e => { e.stopPropagation(); showIdle = !showIdle; applyIdle(true); };
+let showDispos = true; try{ showDispos = localStorage.getItem("showDispos") !== "0"; }catch(_){}
+function applyDispos(rerender){ $("optDispos").setAttribute("aria-checked", String(showDispos)); try{ localStorage.setItem("showDispos", showDispos?"1":"0"); }catch(_){} if (rerender && last) render(last); }
+$("optDispos").onclick = e => { e.stopPropagation(); showDispos = !showDispos; applyDispos(true); };
+applyDispos(false);
+const DISPO_ICONS = {"wrong": "<svg viewBox=\"0 0 24 24\"><path d=\"M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2\"/><path d=\"M15 4l5 5M20 4l-5 5\"/></svg>", "left": "<svg viewBox=\"0 0 24 24\"><circle cx=\"10\" cy=\"7\" r=\"4\"/><path d=\"M3 21v-2a5 5 0 0 1 5-5h4\"/><path d=\"M15 15l6 6M21 15l-6 6\"/></svg>", "wcp": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 8v4M12 16h.01\"/></svg>", "disc": "<svg viewBox=\"0 0 24 24\"><path d=\"M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2\"/><path d=\"M3 3l18 18\"/></svg>", "fu": "<svg viewBox=\"0 0 24 24\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"/><path d=\"M3 4v5h5\"/></svg>", "oth": "<svg viewBox=\"0 0 24 24\"><path d=\"M6 3h9l4 4v14H6z\"/><path d=\"M14 3v5h5M9 13h6M9 17h6\"/></svg>"};
+const DISPO_LABELS = [["wrong","Wrong number"],["left","No longer at company"],["wcp","Wrong contact point"],["disc","Disconnected number"],["fu","HW follow-up"],["oth","Other - see notes"]];
 applyIdle(false);
 // Meeting-set celebration settings
 const cel = { sound: true, flash: true, popup: true, toast: true };
@@ -847,6 +859,11 @@ function renderTeam(s, main){
     if (r.manual) l3.append(el("span","mantag", r.manual + " manual"));
     l3.append(x,y,z);
     rep.append(l2, l3);
+    if (showDispos && !r.manager){
+      const l4 = el("div","dispos"); const dd = r.dispos || {};
+      for (const [k,lab] of DISPO_LABELS){ const n = dd[k]||0; const sp = el("span","di"+(n?"":" zero")); sp.title = lab; sp.innerHTML = DISPO_ICONS[k] + "<b>" + fmt(n) + "</b>"; l4.append(sp); }
+      rep.append(l4);
+    }
     if (open && (r.camps||[]).length){
       const key = open==="int" ? "interested" : "notInterested";
       const list = r.camps.filter(c=>c[key]>0).sort((a,b)=>b[key]-a[key]);
