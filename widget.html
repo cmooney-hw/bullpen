@@ -117,7 +117,7 @@ main{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:
 .mini{display:flex;gap:18px;flex:none;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
 .mini span{display:flex;flex-direction:column;align-items:center;gap:3px}
 .mini small{white-space:nowrap;font-family:var(--f-body);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.int{color:var(--good)} .nint{color:var(--bad)}
+.int{color:var(--good)} .nint{color:var(--bad)} .perm{color:var(--warn)}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:inherit;transition:width .4s ease}
 .bar.met i{background:var(--good)}
@@ -813,8 +813,9 @@ function renderTeam(s, main){
   const mini = el("div","mini");
   const a = el("span"); a.append(el("b","int",fmt(t.interested)), el("small",null,"Int."));
   const b = el("span"); b.append(el("b","nint",fmt(t.notInterested)), el("small",null,"Not int."));
+  const pm = el("span"); pm.append(el("b","perm",fmt(t.permission||0)), el("small",null,"Permission")); pm.title = "Other - See Notes calls where the notes say Permission to Market";
   const c = el("span"); c.append(el("b",null,pct(t.human,t.calls)+"%"), el("small",null,"Connect"));
-  mini.append(a,b,c);
+  mini.append(a,b,pm,c);
   row.append(left, mini);
   const tb = el("div","bar"+(t.calls>=t.goal?" met":"")); const ti=el("i"); ti.style.width=tp+"%"; tb.append(ti);
   team.append(row, tb);
@@ -855,9 +856,10 @@ function renderTeam(s, main){
     };
     const x = mk("int", r.interested, "int", " int.");
     const y = mk("ni", r.notInterested, "nint", " not int.");
+    const pmb = mk("perm", r.permission||0, "perm", " permission"); pmb.title = "Permission to Market (from Other - See Notes). Click to split by campaign";
     const z = el("span","conn"); z.append(el("b",null,pct(r.human,r.calls)+"%"), document.createTextNode(" connect"));
     if (r.manual) l3.append(el("span","mantag", r.manual + " manual"));
-    l3.append(x,y,z);
+    l3.append(x,y,pmb,z);
     rep.append(l2, l3);
     if (showDispos && !r.manager){
       const l4 = el("div","dispos"); const dd = r.dispos || {};
@@ -865,11 +867,11 @@ function renderTeam(s, main){
       rep.append(l4);
     }
     if (open && (r.camps||[]).length){
-      const key = open==="int" ? "interested" : "notInterested";
+      const key = open==="int" ? "interested" : open==="perm" ? "permission" : "notInterested";
       const list = r.camps.filter(c=>c[key]>0).sort((a,b)=>b[key]-a[key]);
       if (list.length){
         const sp = el("div","split");
-        for (const c of list){ const row = el("div","s"); row.append(el("span",null,c.name)); row.append(el("b", open==="int"?"int":"nint", fmt(c[key]))); sp.append(row); }
+        for (const c of list){ const row = el("div","s"); row.append(el("span",null,c.name)); row.append(el("b", open==="int"?"int":open==="perm"?"perm":"nint", fmt(c[key]))); sp.append(row); }
         rep.append(sp);
       }
     }
@@ -970,8 +972,9 @@ function showRecap(){
   const mini = el("div","mini");
   const a = el("span"); a.append(el("b","int",fmt(tm.interested)), el("small",null,"Int."));
   const b = el("span"); b.append(el("b","nint",fmt(tm.notInterested)), el("small",null,"Not int."));
+  const pm = el("span"); pm.append(el("b","perm",fmt(tm.permission||0)), el("small",null,"Permission"));
   const c = el("span"); c.append(el("b",null,pct(tm.human,tm.calls)+"%"), el("small",null,"Connect"));
-  mini.append(a,b,c); tr.append(tl, mini); top.append(tr); body.append(top);
+  mini.append(a,b,pm,c); tr.append(tl, mini); top.append(tr); body.append(top);
 
   const table = el("table"); const hr = el("tr");
   for (const h of ["Rep","Calls","Vs goal","Int.","Not","Conn."]) hr.append(el("th",null,h));

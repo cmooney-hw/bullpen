@@ -25,6 +25,8 @@ const OUTCOMES = [
   ["fu", /^(highwater|hw)\s*[-\s]?\s*follow[\s-]*up/i],
   ["oth", /^other/i]
 ];
+// "Other - See Notes" calls whose notes say Permission to Market: the prospect agreed to get our info
+const PERMISSION_RE = /permission\s*to\s*market/i;
 const outcomeOf = dl => { for (const [k, re] of OUTCOMES) if (re.test(dl)) return k; return null; };
 const DNC_RE = /(do\s*not\s*call|don'?t\s*call|\bdnc\b|remove (me|him|her|them|us)? ?from|take (me|him|her|them|us) off)/i;
 
@@ -61,6 +63,7 @@ function rowFacts(r) {
     campaignId: r.campaign && r.campaign.id != null ? Number(r.campaign.id) : null,
     disp, note,
     outcome: outcomeOf(dl),
+    permission: /^other/i.test(dl) && PERMISSION_RE.test(note || ""),
     interested: INTERESTED.has(dl) || INTERESTED_RE.test(dl), // strict: only the Interested / Meeting Set dispositions, never inferred from notes
     human: longEnough && (HUMAN.has(dl) || INTERESTED_RE.test(dl) || FOLLOWUP_RE.test(dl)),
     notInterested: isNI && !DNC_RE.test(note)
@@ -80,7 +83,7 @@ function summarize(calls, start, end, manual, hidden) {
   end = end || start;
   const days = start === end ? 1 : workdaysBetween(start, end);
   const per = {};
-  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {}, byHour: {}, dispos: {} };
+  for (const r of REPS) per[r.id] = { calls: 0, interested: 0, notInterested: 0, permission: 0, human: 0, lastCallTs: 0, camps: {}, byDay: {}, byHour: {}, dispos: {} };
   for (const c of calls.values()) {
     if (c.ymd < start || c.ymd > end || !per[c.agent]) continue;
     const p = per[c.agent];
@@ -89,12 +92,14 @@ function summarize(calls, start, end, manual, hidden) {
     if (c.hour >= 0) p.byHour[c.hour] = (p.byHour[c.hour] || 0) + 1;
     if (c.interested) p.interested++;
     if (c.notInterested) p.notInterested++;
+    if (c.permission) p.permission++;
     if (c.outcome) p.dispos[c.outcome] = (p.dispos[c.outcome] || 0) + 1;
     const k = c.campaign || "No campaign";
-    const cc = p.camps[k] || (p.camps[k] = { name: k, calls: 0, interested: 0, notInterested: 0, human: 0 });
+    const cc = p.camps[k] || (p.camps[k] = { name: k, calls: 0, interested: 0, notInterested: 0, permission: 0, human: 0 });
     cc.calls++;
     if (c.interested) cc.interested++;
     if (c.notInterested) cc.notInterested++;
+    if (c.permission) cc.permission++;
     if (c.human) { p.human++; cc.human++; }
     if (c.ts > p.lastCallTs) p.lastCallTs = c.ts;
   }
@@ -108,12 +113,12 @@ function summarize(calls, start, end, manual, hidden) {
       p.byDay[day] = (p.byDay[day] || 0) + mc;
     }
   }
-  const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, human: 0 };
+  const team = { calls: 0, goal: 0, interested: 0, notInterested: 0, permission: 0, human: 0 };
   for (const r of REPS) {
     if (r.manager || hidden.has(r.id)) continue;
     const p = per[r.id];
     team.calls += p.calls; team.goal += GOAL * days;
-    team.interested += p.interested; team.notInterested += p.notInterested; team.human += p.human;
+    team.interested += p.interested; team.notInterested += p.notInterested; team.permission += p.permission; team.human += p.human;
   }
   // Mon..Fri of the period's week, for the per-day bars (only meaningful for a week period)
   const weekDays = []; for (let i = 0; i < 5; i++) weekDays.push(addDays(mondayOf(start), i));
