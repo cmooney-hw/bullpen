@@ -47,18 +47,22 @@ function saveCreds(c) {
 
 /* ---------------- Bullpen server: the shared brain every screen reads from ---------------- */
 const SERVER = process.env.BULLPEN_SERVER || "https://bullpen-server-production.up.railway.app";
+// Never show a crash dialog for a stray network error; log it and keep running
+process.on("uncaughtException", e => { try { console.error("[bullpen] uncaught:", e && e.stack || e); } catch (_) {} });
 const WS = require("ws");
 let sock = null, state = null, wsTimer = null, connected = false, lastMsgAt = 0, lastAttemptAt = 0;
 let serverStatus = "connecting"; // connecting | live | needs-code | offline
 const REP_IDS = new Set(REPS.map(r => r.id));
 const startedAt = Date.now();
 
+// Close a socket without letting a late "error" event crash the app
+function killSock(s) { if (!s) return; try { s.removeAllListeners(); s.on("error", () => {}); s.terminate(); } catch (_) {} }
 function accessCode() { const c = loadCreds(); return c && c.code ? c.code : null; }
 function connect() {
   clearTimeout(wsTimer); lastAttemptAt = Date.now();
   const code = accessCode();
   if (!code) { serverStatus = "needs-code"; push(); openSetup(); return; }
-  try { if (sock) { sock.removeAllListeners(); sock.terminate(); } } catch (_) {}
+  killSock(sock); sock = null;
   const url = SERVER.replace(/^http/, "ws") + "/ws?token=" + encodeURIComponent(code);
   sock = new WS(url);
   sock.on("open", () => { connected = true; serverStatus = "live"; lastMsgAt = Date.now(); push(); handOverKeyIfNeeded(); });
@@ -73,7 +77,7 @@ function connect() {
     if (res && res.statusCode === 401) { serverStatus = "needs-code"; push(); openSetup("That access code wasn't accepted."); return; }
     // Server restarting (502/503 etc): try again shortly instead of waiting forever
     connected = false; serverStatus = "offline"; push();
-    try { sock.removeAllListeners(); sock.terminate(); } catch (_) {}
+    killSock(sock); sock = null;
     clearTimeout(wsTimer); wsTimer = setTimeout(connect, 5000);
   });
   const down = () => { connected = false; if (serverStatus !== "needs-code") serverStatus = "offline"; push(); wsTimer = setTimeout(connect, 5000); };
